@@ -36,11 +36,11 @@ router.post('/parent', async (req, res) => {
     }
     try {
         // After validation => Checking if the user is already exist or not in the databse by checking his email
-        const { phoneNumbers } = req.body;
-        const parentExists = await Parent.findOne({ 'phoneNumbers.mainPhoneNumber': phoneNumbers.mainPhoneNumber, childhoodInstitution: "5ec18caa251697483820b5b2" });
+        const { phoneNumbers, childhoodInstitution } = req.body;
+        const parentExists = await Parent.findOne({ 'phoneNumbers.mainPhoneNumber': phoneNumbers.mainPhoneNumber, childhoodInstitution: childhoodInstitution });
         if (parentExists) return res.status(400).json({ errorMsg: 'User already exists' });
 
-        const { father, mother, location, governorate, children, childhoodInstitution, password } = req.body;
+        const { father, mother, location, governorate, children, password } = req.body;
 
         // Create an instance of a User
         const parent = new Parent({
@@ -166,13 +166,13 @@ router.put('/phonenumbers/main', authPrivRoutes, async (req, res) => {
         const mainPhoneNumberExists = await Parent.findOne({ 'phoneNumbers.mainPhoneNumber': mainPhoneNumber, _id: { $ne: req.user.id }, childhoodInstitution: req.user.childhoodInstitution });
 
         if (mainPhoneNumberExists) return res.status(400).json({ errorMsg: "mainPhoneNumber already exists" });
-        /* Test le après avoir ajouter des instanciations du modèle TeamMember
-        
-        const PhoneNumberTeamMember = await TeamMember.findOne({ phoneNumber: mainPhoneNumber });
+        //Testes le après avoir ajouter des instanciations du modèle TeamMember
+
+        const PhoneNumberTeamMember = await TeamMember.findOne({ phoneNumber: mainPhoneNumber, childhoodInstitution: req.user.childhoodInstitution });
 
         if (PhoneNumberTeamMember) return res.status(400).json({ errorMsg: "mainPhoneNumber already exists" });
 
-        */
+
         const me = await Parent.findOne({ _id: req.user.id });
         if (me && me.phoneNumbers.mainPhoneNumber === mainPhoneNumber) return res.status(400).json({ msg: "Your phone number has not been changed" });
         if (me && me.phoneNumbers.optionalPhoneNumber === mainPhoneNumber) return res.status(400).json({ msg: `the number entered ${mainPhoneNumber} represents your optional number.` });
@@ -284,7 +284,10 @@ router.put('/phonenumbers/exchange', authPrivRoutes, async (req, res) => {
         const { mainPhoneNumber, optionalPhoneNumber } = me.phoneNumbers;
         if (optionalPhoneNumber === '') return res.status(400).json({ errorMsg: "we cannot put the main number empty" });
 
-        const optionalPhoneNumberExists = await Parent.findOne({ 'phoneNumbers.mainPhoneNumber': optionalPhoneNumber, _id: { $ne: req.user.id }, childhoodInstitution: req.user.childhoodInstitution });
+        let optionalPhoneNumberExists = await Parent.findOne({ 'phoneNumbers.mainPhoneNumber': optionalPhoneNumber, _id: { $ne: req.user.id }, childhoodInstitution: req.user.childhoodInstitution });
+        if (optionalPhoneNumberExists) return res.status(400).json({ errorMsg: `${optionalPhoneNumber} already exists as mainPhoneNumber for another user` });
+
+        optionalPhoneNumberExists = await TeamMember.findOne({ phoneNumber: optionalPhoneNumber, childhoodInstitution: req.user.childhoodInstitution });
         if (optionalPhoneNumberExists) return res.status(400).json({ errorMsg: `${optionalPhoneNumber} already exists as mainPhoneNumber for another user` });
 
         const newOptionalPhoneNumber = await Parent.findOneAndUpdate({ _id: req.user.id }, { $set: { 'phoneNumbers.optionalPhoneNumber': mainPhoneNumber, 'phoneNumbers.mainPhoneNumber': optionalPhoneNumber } }, { new: true });
