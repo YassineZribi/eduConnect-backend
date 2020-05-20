@@ -14,18 +14,27 @@ const TeamMemberSchema = new mongoose.Schema({
         required: true
     },
     phoneNumber: {
-        type: String
-    },
-    status: {   // checkbox          FoundationEmitter    manager    animator
-        type: [String],
+        type: String,
         required: true
     },
-    password: {
-        type: String,
+    status: {   // checkbox          FoundationEmitter    manager    animator
+        type: [{ type: String, required: true }],
         required: true
     },
     childhoodInstitution: {
         type: mongoose.Schema.Types.ObjectId,
+        ref: 'ChildhoodInstitution',
+        required: true
+    },
+    governorate: {
+        type: String,
+        required: true
+    },
+    teachingLevel: {
+        type: String,
+    },
+    password: {
+        type: String,
         required: true
     },
     avatar: {
@@ -39,5 +48,6 @@ const TeamMemberSchema = new mongoose.Schema({
     }
 
 });
+
 
 module.exports = mongoose.model('TeamMember', TeamMemberSchema);

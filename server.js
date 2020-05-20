@@ -17,6 +17,7 @@ app.use(express.json({ extended: false }));
 app.use('/categories', require('./routes/routes2/categories'));
 app.use('/childhoodinstitutions', require('./routes/routes2/childhoodInstitutions'));
 app.use('/users', require('./routes/routes2/users'));
+app.use('/team_members', require('./routes/routes2/teamMembers'));
 app.use('/auth', require('./routes/routes2/auth'));
 app.use('/profiles', require('./routes/profiles'));
 app.use('/posts', require('./routes/posts'));

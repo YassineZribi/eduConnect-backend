@@ -40,6 +40,9 @@ router.post('/parent', async (req, res) => {
         const parentExists = await Parent.findOne({ 'phoneNumbers.mainPhoneNumber': phoneNumbers.mainPhoneNumber, childhoodInstitution: childhoodInstitution });
         if (parentExists) return res.status(400).json({ errorMsg: 'User already exists' });
 
+        const teamMemberExists = await TeamMember.findOne({ phoneNumber: phoneNumbers.mainPhoneNumber, childhoodInstitution: childhoodInstitution });
+        if (teamMemberExists) return res.status(400).json({ errorMsg: 'User already exists' });
+
         const { father, mother, location, governorate, children, password } = req.body;
 
         // Create an instance of a User

@@ -2,10 +2,11 @@ const express = require('express');
 const router = express.Router();
 const authPrivRoutes = require('../../middleware/authPrivRoutes');
 const jwt = require('jsonwebtoken');
-const loginParentValidation = require('../validations/loginParentValidation');
+const loginValidation = require('../validations/loginValidation');
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
 const Parent = require('../../models/Parent');
+const TeamMember = require('../../models/TeamMember');
 
 
 // @route   *** GET /auth ***
@@ -31,11 +32,11 @@ router.get('/test2', authPrivRoutes, async (req, res) => {
 });
 
 // @route   *** POST /auth ***
-// @desc    *** Authenticate parent & get token ***
+// @desc    *** Authenticate parent or teamMember & get token ***
 // @access  *** Public ***
 router.post('/', async (req, res) => {
     // Validate the data before authenticate the user (using @hapi/joi)
-    const { error, value } = loginParentValidation(req.body);
+    const { error, value } = loginValidation(req.body);
 
     if (error) {
         // console.log("error ", error);
@@ -45,20 +46,21 @@ router.post('/', async (req, res) => {
     }
     try {
         // After validation => Checking if the user is already exist or not in the databse by checking his email
-        const { mainPhoneNumber, password } = req.body;
-        const parent = await Parent.findOne({ 'phoneNumbers.mainPhoneNumber': mainPhoneNumber });
-        if (!parent) return res.status(400).json({ alert: 'Phone number or Password is wrong' }); // userNotFound: 'Email is not found'
-
+        const { phoneNum, password } = req.body;
+        let user = await TeamMember.findOne({ phoneNumber: phoneNum });
+        if (!user) {
+            user = await Parent.findOne({ 'phoneNumbers.mainPhoneNumber': phoneNum });
+            if (!user) return res.status(400).json({ alert: 'Phone number or Password is wrong' }); // userNotFound: 'User not found'
+        };
         // checking if the password entered and the user password saved in the databse are equal
-        const isMatch = await bcrypt.compare(password, parent.password);
+        const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(401).json({ alert: 'Phone number or Password is wrong' }); // invalidPassword: 'Invalid Password'
-
 
         // Return (sending back) jsonwebtoken to the front-end
         const payload = {
             user: {
-                id: parent.id,
-                childhoodInstitution: parent.childhoodInstitution
+                id: user.id,
+                childhoodInstitution: user.childhoodInstitution
             }
         };
         jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: 3600000 }, (err, token) => {
@@ -74,10 +76,6 @@ router.post('/', async (req, res) => {
         res.status(500).json({ serverError: 'Server error was occured!!!' });
 
     }
-
-
-
-
 
 });
 
