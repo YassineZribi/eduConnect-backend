@@ -7,6 +7,7 @@ const Parent = require('../../models/Parent');
 const TeamMember = require('../../models/TeamMember');
 const registerParentValidation = require('../validations/registerParentValidation');
 const updateParentValidation = require('../validations/updateParentValidation');
+const updatePasswordValidation = require('../validations/updatePasswordValidation');
 const { updateMainPhoneNumber, updateOptionalPhoneNumber } = require('../validations/updatePhoneNumbers');
 const authPrivRoutes = require('../../middleware/authPrivRoutes');
 require('dotenv').config();
@@ -281,7 +282,7 @@ router.put('/phonenumbers/exchange', authPrivRoutes, async (req, res) => {
         const me = await Parent.findOne({ _id: req.user.id });
         if (!me) return res.status(404).json({ errorMsg: "Can not find this user" });
         const { mainPhoneNumber, optionalPhoneNumber } = me.phoneNumbers;
-        if (optionalPhoneNumber === '') return res.status(400).json({ errorMsg: "we cannot put the main number in an empty string" });
+        if (optionalPhoneNumber === '') return res.status(400).json({ errorMsg: "we cannot put the main number empty" });
 
         const optionalPhoneNumberExists = await Parent.findOne({ 'phoneNumbers.mainPhoneNumber': optionalPhoneNumber, _id: { $ne: req.user.id }, childhoodInstitution: req.user.childhoodInstitution });
         if (optionalPhoneNumberExists) return res.status(400).json({ errorMsg: `${optionalPhoneNumber} already exists as mainPhoneNumber for another user` });
@@ -299,5 +300,44 @@ router.put('/phonenumbers/exchange', authPrivRoutes, async (req, res) => {
 
 });
 
+
+// @route   *** PUT /users ***
+// @desc    *** mofidy password ***
+// @access  *** Private ***
+router.put('/modify_password', authPrivRoutes, async (req, res) => {
+    const { error, value } = updatePasswordValidation(req.body);
+
+    if (error) {
+        // console.log("error ", error);
+        // console.log('error:: ', JSON.stringify(error, null, 2));
+        console.log(JSON.stringify(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}), null, 2));
+        return res.status(400).json(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}));
+    }
+
+    try {
+        const parent = await Parent.findOne({ _id: req.user.id });
+        if (!parent) return res.status(400).json({ errorMsg: 'Can not found the user' });
+
+        const { currentPassword, newPassword } = req.body;
+        // checking if the password entered and the user password saved in the databse are equal
+        const isMatch = await bcrypt.compare(currentPassword, parent.password);
+        if (!isMatch) return res.status(401).json({ errorMsg: 'Invalid current password' });
+
+
+        if (currentPassword === newPassword) return res.status(400).json({ msg: "You kept the old password!" });
+
+        // before saving our newPassword in the db, we must encrypt it (using bcrypt) -> (we shouldn't store password in database in plain text)
+        const salt = await bcrypt.genSalt(10);
+        newPassEncrypted = await bcrypt.hash(newPassword, salt);
+
+        const userAfterChangingPassword = await Parent.findOneAndUpdate({ _id: req.user.id }, { $set: { password: newPassEncrypted } }, { new: true });
+        res.json(userAfterChangingPassword);
+
+    } catch (err) {
+        console.error("error::", err.message);
+        res.status(500).json({ errorMsg: 'Server error has occcured !' });
+    }
+
+});
 
 module.exports = router;
