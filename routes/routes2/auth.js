@@ -46,10 +46,10 @@ router.post('/', async (req, res) => {
     }
     try {
         // After validation => Checking if the user is already exist or not in the databse by checking his email
-        const { phoneNum, password } = req.body;
-        let user = await TeamMember.findOne({ phoneNumber: phoneNum });
+        const { phoneNum, password, childhoodInstitution } = req.body;
+        let user = await TeamMember.findOne({ phoneNumber: phoneNum, childhoodInstitution: childhoodInstitution });
         if (!user) {
-            user = await Parent.findOne({ 'phoneNumbers.mainPhoneNumber': phoneNum });
+            user = await Parent.findOne({ 'phoneNumbers.mainPhoneNumber': phoneNum, childhoodInstitution: childhoodInstitution });
             if (!user) return res.status(400).json({ alert: 'Phone number or Password is wrong' }); // userNotFound: 'User not found'
         };
         // checking if the password entered and the user password saved in the databse are equal

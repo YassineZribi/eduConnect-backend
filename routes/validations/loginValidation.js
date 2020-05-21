@@ -15,7 +15,7 @@ const loginValidation = (reqBody) => {
             "any.required": `"username" is a required field`
         })
     });
-    return schema.validate(reqBody, { abortEarly: false });
+    return schema.validate(reqBody, { abortEarly: false, allowUnknown: true });
 };
 
 

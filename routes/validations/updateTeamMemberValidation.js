@@ -34,4 +34,36 @@ const updateTeamMemberProfileValidation = (reqBody) => {
     return schema.validate(reqBody, { abortEarly: false, allowUnknown: true });
 };
 
-module.exports = { updateTeamMemberProfileValidation };
+const updatephoneNumberValidation = (reqBody) => {
+    const schema = Joi.object({
+        phoneNumber: Joi.string().pattern(new RegExp('^[0-9]*$')).length(8).empty().required().messages({
+            "string.base": `"phoneNumber" should be a type of 'text'`,
+            "string.pattern": `"phoneNumber" must contain only numbers`,
+            "string.length": `"phoneNumber" must have exactly 8 numbers`,
+            "string.empty": `Ce champ doit être rempli !`,
+            "any.required": `"phoneNumber" is a required field`
+        })
+
+    });
+    return schema.validate(reqBody, { abortEarly: false, allowUnknown: true });
+};
+
+const updatePasswordValidation = (reqBody) => {
+    const schema = Joi.object({
+        currentPassword: Joi.string().empty().required().messages({
+            "string.base": `"username" should be a type of 'text'`,
+            "string.empty": `Ce champ doit être rempli !`,
+            "any.required": `"username" is a required field`
+        }),
+        newPassword: Joi.string().min(6).max(30).empty().required().messages({
+            "string.base": `"username" should be a type of 'text'`,
+            "string.empty": `Ce champ doit être rempli !`,
+            "string.min": `"newPassword" should have a minimum length of 6 `,
+            "string.max": `"username" should have a maximum length of 30`,
+            "any.required": `"username" is a required field`
+        })
+    });
+    return schema.validate(reqBody, { abortEarly: false });
+};
+
+module.exports = { updateTeamMemberProfileValidation, updatephoneNumberValidation, updatePasswordValidation };

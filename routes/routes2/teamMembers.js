@@ -5,11 +5,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Parent = require('../../models/Parent');
 const TeamMember = require('../../models/TeamMember');
-const registerParentValidation = require('../validations/registerParentValidation');
 const registerTeamMemberValidation = require('../validations/registerTeamMemberValidation');
-const updateParentValidation = require('../validations/updateParentValidation');
-const updatePasswordValidation = require('../validations/updatePasswordValidation');
-const { updateTeamMemberProfileValidation } = require('../validations/updateTeamMemberValidation');
+const { updateTeamMemberProfileValidation, updatephoneNumberValidation, updatePasswordValidation } = require('../validations/updateTeamMemberValidation');
 const authPrivRoutes = require('../../middleware/authPrivRoutes');
 require('dotenv').config();
 
@@ -132,6 +129,86 @@ router.put('/', authPrivRoutes, async (req, res) => {
         console.error("error::", err.message);
         res.status(500).json({ errorMsg: 'Server error has occcured !' });
     }
+});
+
+
+// @route   *** PUT /users ***
+// @desc    *** Update phoneNumber ***
+// @access  *** Private ***
+router.put('/update_phonenumber', authPrivRoutes, async (req, res) => {
+    const { error, value } = updatephoneNumberValidation(req.body);
+
+    if (error) {
+        // console.log("error ", error);
+        // console.log('error:: ', JSON.stringify(error, null, 2));
+        console.log(JSON.stringify(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}), null, 2));
+        return res.status(400).json(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}));
+    }
+
+    const { phoneNumber } = req.body;
+
+    try {
+        const phoneNumberExists = await TeamMember.findOne({ phoneNumber: phoneNumber, _id: { $ne: req.user.id }, childhoodInstitution: req.user.childhoodInstitution });
+
+        if (phoneNumberExists) return res.status(400).json({ errorMsg: "phoneNumber already exists" });
+        //Testes le après avoir ajouter des instanciations du modèle TeamMember
+
+        const PhoneNumberTeamMember = await Parent.findOne({ 'phoneNumbers.mainPhoneNumber': phoneNumber, childhoodInstitution: req.user.childhoodInstitution });
+
+        if (PhoneNumberTeamMember) return res.status(400).json({ errorMsg: "phoneNumber already exists" });
+
+
+        const me = await TeamMember.findOne({ _id: req.user.id });
+        if (me && me.phoneNumber === phoneNumber) return res.status(400).json({ msg: "Your phone number has not been changed" });
+        // me.phoneNumbers.mainPhoneNumber = mainPhoneNumber;
+        // await me.save()  // method of ahmed
+        const newPhoneNumber = await TeamMember.findOneAndUpdate({ _id: req.user.id }, { $set: { phoneNumber: phoneNumber } }, { new: true });
+        res.json(newPhoneNumber);
+
+    } catch (err) {
+        console.error("error::", err.message);
+        res.status(500).json({ errorMsg: 'Server error has occcured !' });
+    }
+
+});
+
+// @route   *** PUT /users ***
+// @desc    *** modify password ***
+// @access  *** Private ***
+router.put('/modify_password', authPrivRoutes, async (req, res) => {
+    const { error, value } = updatePasswordValidation(req.body);
+
+    if (error) {
+        // console.log("error ", error);
+        // console.log('error:: ', JSON.stringify(error, null, 2));
+        console.log(JSON.stringify(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}), null, 2));
+        return res.status(400).json(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}));
+    }
+
+    try {
+        const teamMember = await TeamMember.findOne({ _id: req.user.id });
+        if (!teamMember) return res.status(400).json({ errorMsg: 'Can not found the user' });
+
+        const { currentPassword, newPassword } = req.body;
+        // checking if the password entered and the user password saved in the databse are equal
+        const isMatch = await bcrypt.compare(currentPassword, teamMember.password);
+        if (!isMatch) return res.status(401).json({ errorMsg: 'Invalid current password' });
+
+
+        if (currentPassword === newPassword) return res.status(400).json({ msg: "You kept the old password !" });
+
+        // before saving our newPassword in the db, we must encrypt it (using bcrypt) -> (we shouldn't store password in database in plain text)
+        const salt = await bcrypt.genSalt(10);
+        newPassEncrypted = await bcrypt.hash(newPassword, salt);
+
+        const userAfterChangingPassword = await TeamMember.findOneAndUpdate({ _id: req.user.id }, { $set: { password: newPassEncrypted } }, { new: true });
+        res.json(userAfterChangingPassword);
+
+    } catch (err) {
+        console.error("error::", err.message);
+        res.status(500).json({ errorMsg: 'Server error has occcured !' });
+    }
+
 });
 
 
