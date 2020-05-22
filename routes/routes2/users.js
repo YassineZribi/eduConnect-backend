@@ -3,6 +3,7 @@ const router = express.Router();
 const gravatar = require('gravatar');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const cron = require('node-cron');
 const Parent = require('../../models/Parent');
 const TeamMember = require('../../models/TeamMember');
 const registerParentValidation = require('../validations/registerParentValidation');
@@ -87,9 +88,6 @@ router.post('/parent', async (req, res) => {
             if (err) throw err;
             res.json({ token });
         });
-
-
-
 
     } catch (err) {
         // if something goes wrong (server error or something's wrong with the server)
@@ -345,5 +343,55 @@ router.put('/modify_password', authPrivRoutes, async (req, res) => {
     }
 
 });
+
+
+// @route   *** PUT /users ***
+// @desc    *** update isVerified field to true ***
+// @access  *** Private ***
+router.put('/update_isverified_field', authPrivRoutes, async (req, res) => {
+
+    try {
+        const parent = await Parent.findOneAndUpdate({ _id: req.user.id }, { $set: { isVerified: true } }, { new: true });
+        if (!parent) return res.status(400).json({ errorMsg: 'Can not found the user' });
+        res.json(parent);
+
+    } catch (err) {
+        console.error("error::", err.message);
+        res.status(500).json({ errorMsg: 'Server error has occcured !' });
+    }
+
+});
+
+
+// @route   *** PUT /users ***
+// @desc    *** update paymentStatus to "Payé(e)" 
+// *** important : ki ta3mel routes for Bill na7iha men houn w 7otha 8ad w badel el lezem biensur
+// @access  *** Private ***
+router.put('/update_paymentStatus_field_to_paid', authPrivRoutes, async (req, res) => {
+
+    try {
+        const parent = await Parent.findOneAndUpdate({ _id: req.user.id }, { $set: { paymentStatus: 'Has Paid' } }, { new: true });
+        if (!parent) return res.status(400).json({ errorMsg: 'Can not found the user' });
+        res.json(parent);
+
+    } catch (err) {
+        console.error("error::", err.message);
+        res.status(500).json({ errorMsg: 'Server error has occcured !' });
+    }
+
+});
+
+
+/*
+(() => {
+    cron.schedule('* * * * *', async () => {
+        const oneParent = await Parent.findOne({ 'phoneNumbers.mainPhoneNumber': '22585016' });
+        if (!oneParent) return console.log('error has occured !!!!');
+        console.log('oneParent::: ', JSON.stringify(oneParent, null, 2));
+
+    });
+})();
+*/
+
 
 module.exports = router;

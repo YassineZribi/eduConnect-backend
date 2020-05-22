@@ -66,4 +66,27 @@ const updatePasswordValidation = (reqBody) => {
     return schema.validate(reqBody, { abortEarly: false });
 };
 
-module.exports = { updateTeamMemberProfileValidation, updatephoneNumberValidation, updatePasswordValidation };
+
+const updateStatusValidation = (reqBody) => {
+    const schema = Joi.object({
+        status: Joi.array().min(1).items(Joi.string().min(3).max(20).empty().required().messages({
+            "string.base": `"status" should be a type of 'text'`,
+            "string.min": `"status" should have a minimum length of 3 `, // {#limit}
+            "string.max": `"status" should have a maximum length of 20`, // {#limit}
+            "string.empty": `Ce champ doit être rempli !`,
+            "any.required": `"status" is a required field`
+        }))
+    });
+    return schema.validate(reqBody, { abortEarly: false, allowUnknown: true });
+};
+
+const updateTeachingLevelValidation = (reqBody) => {
+    const schema = Joi.object({
+        teachingLevel: Joi.string().pattern(new RegExp('^[3-5]*$')).length(1).allow('').messages({
+            "string.base": `"username" should be a type of 'text'`
+        })
+    });
+    return schema.validate(reqBody, { abortEarly: false, allowUnknown: true });
+};
+
+module.exports = { updateTeamMemberProfileValidation, updatephoneNumberValidation, updatePasswordValidation, updateStatusValidation, updateTeachingLevelValidation };

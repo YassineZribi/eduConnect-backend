@@ -9,6 +9,10 @@ const ChildhoodInstitutionSchema = mongoose.Schema({
         type: String,
         required: isLogoRequired
     },
+    governorate: {
+        type: String,
+        required: true
+    },
     location: {
         type: String,
         required: true
@@ -43,12 +47,8 @@ const ChildhoodInstitutionSchema = mongoose.Schema({
     },
     animators: {
         type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'TeamMember' }]
-    },
-    createdOn: {
-        type: Date,
-        default: Date.now
     }
-});
+}, { timestamps: { createdAt: true, updatedAt: false } });
 
 function isLogoRequired() {
     return typeof this.logo === 'string' ? false : true;

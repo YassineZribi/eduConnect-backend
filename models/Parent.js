@@ -44,28 +44,29 @@ const ParentSchema = mongoose.Schema({
     childhoodInstitution: {
         type: mongoose.Schema.Types.ObjectId, ref: 'ChildhoodInstitution', required: true
     },
-    /*
-    registrationInstitutions: {
-    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'ChildhoodInstitution', required: true }],
-    required: true
-    },
-    */
     password: {
         type: String,
         required: true
     },
-
+    isVerified: {
+        type: Boolean,
+        default: false
+    },
     avatar: {
         type: String,
         default: 'https://www.pngkey.com/png/full/436-4368930_animated-child-png-free-download-on-cartoon-children.png'
-    },
-    createdOn: {
-        type: Date,
-        default: Date.now
     }
-});
+}, { timestamps: { createdAt: true, updatedAt: false } });
 
 function isOptionalPhoneNumberRequired() {
     return typeof this.phoneNumbers.optionalPhoneNumber === 'string' ? false : true;
 }
 module.exports = mongoose.model('Parent', ParentSchema);
+
+
+/*
+registrationInstitutions: {
+type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'ChildhoodInstitution', required: true }],
+required: true
+},
+*/

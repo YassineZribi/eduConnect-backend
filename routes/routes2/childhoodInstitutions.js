@@ -16,12 +16,13 @@ router.get('/test', (req, res) => {
 // @desc    *** create childhood institution ***
 // @access  *** Private (only for admin) ***
 router.post('/', async (req, res) => {
-    const { institutionName, logo, location, phoneNumbers, category } = req.body;
+    const { institutionName, logo, location, phoneNumbers, category, governorate } = req.body;
     const { fixedPhoneNumber, mobilePhoneNumber } = phoneNumbers;
     const { mainPhoneNumber, optionalPhoneNumber } = mobilePhoneNumber;
     const childhoodInstitution = new ChildhoodInstitution({
         institutionName,
         logo,
+        governorate,
         location,
         phoneNumbers: {
             fixedPhoneNumber,
@@ -65,7 +66,7 @@ router.get('/one', async (req, res) => {
 // @access  *** Public ***
 router.get('/', async (req, res) => {
     try {
-        const childhoodInstitution = await ChildhoodInstitution.find().populate('category');
+        const childhoodInstitution = await ChildhoodInstitution.find().populate('category'); // .find() may return emty array if the query matchs any documents.
         if (childhoodInstitution.length === 0) return res.status(404).json({ errorMsg: "childhood institution NOT FOUND" });
         res.json(childhoodInstitution);
     } catch (err) {

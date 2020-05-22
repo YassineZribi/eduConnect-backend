@@ -6,15 +6,15 @@ const BillSchema = mongoose.Schema({
         ref: 'ChildhoodInstitution',
         required: true
     },
-    user: {
+    parent: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true
     },
-    status: {
-        type: String,      // Pas encore payé     Payé     Non payé !
-        default: 'Pas encore payé'
-    },
+    paymentStatus: {
+        type: String,
+        default: 'Waiting...'            // Payé(e)       // En attente...   // Non payé(e)
+    },                                   // Has Paid      // Waiting...      // Not Paid
     totalAmount: {
         type: Number,
         required: true
@@ -23,7 +23,8 @@ const BillSchema = mongoose.Schema({
         type: Number
     },
     from: {           // Date de création de la facture (à chaque 1er jour d'un nouvel mois)
-        type: Date
+        type: Date,
+        default: new Date
     },                // from et to vont affecter le status (si on arrive à la fin du mois et la facture n'a pas encore payé, => Non payé)
     to: {
         type: Date

@@ -87,23 +87,11 @@ const registerParentValidation = (reqBody) => {
                 "any.required": `"username" is a required field`
             })
         })),
-        // status: Joi.string().empty().required().messages({
-        //     "string.base": `"username" should be a type of 'text'`,
-        //     "string.empty": `Ce champ doit être rempli !`,
-        //     "any.required": `"username" is a required field`
-        // }),
         childhoodInstitution: Joi.string().empty().required().messages({
             "string.base": `"username" should be a type of 'text'`,
             "string.empty": `Ce champ doit être rempli !`,
             "any.required": `"username" is a required field`
         }),
-        /*
-        registrationInstitutions: Joi.array().items(Joi.string().empty().required().messages({
-            "string.base": `"username" should be a type of 'text'`,
-            "string.empty": `Ce champ doit être rempli !`,
-            "any.required": `"username" is a required field`
-        })),
-        */
         password: Joi.string().min(6).max(30).empty().required().messages({
             "string.base": `"username" should be a type of 'text'`,
             "string.empty": `Ce champ doit être rempli !`,
@@ -117,3 +105,11 @@ const registerParentValidation = (reqBody) => {
 };
 
 module.exports = registerParentValidation;
+
+
+
+        // status: Joi.string().empty().required().messages({
+        //     "string.base": `"username" should be a type of 'text'`,
+        //     "string.empty": `Ce champ doit être rempli !`,
+        //     "any.required": `"username" is a required field`
+        // }),

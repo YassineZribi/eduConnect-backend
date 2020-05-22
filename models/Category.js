@@ -12,12 +12,8 @@ const CategorySchema = mongoose.Schema({
     description: {
         type: String,
         required: true
-    },
-    createdOn: {
-        type: Date,
-        default: Date.now
     }
-});
+}, { timestamps: { createdAt: true, updatedAt: false } });
 
 function isMyFieldRequired() {
     return typeof this.image === 'string' ? false : true;

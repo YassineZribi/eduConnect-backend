@@ -6,7 +6,7 @@ const jwt = require('jsonwebtoken');
 const Parent = require('../../models/Parent');
 const TeamMember = require('../../models/TeamMember');
 const registerTeamMemberValidation = require('../validations/registerTeamMemberValidation');
-const { updateTeamMemberProfileValidation, updatephoneNumberValidation, updatePasswordValidation } = require('../validations/updateTeamMemberValidation');
+const { updateTeamMemberProfileValidation, updatephoneNumberValidation, updatePasswordValidation, updateStatusValidation, updateTeachingLevelValidation } = require('../validations/updateTeamMemberValidation');
 const authPrivRoutes = require('../../middleware/authPrivRoutes');
 require('dotenv').config();
 
@@ -47,12 +47,14 @@ router.post('/', async (req, res) => {
             lastName,
             nationalIdCard,
             phoneNumber,
-            status,
+            status: status.sort(),
             childhoodInstitution,
             governorate,
             password // now this password is not encrypted yet
         };
         if (teachingLevel) newTeamMember.teachingLevel = teachingLevel;
+        // if (status.includes('animator')) newTeamMember.teachingLevel = teachingLevel;
+
 
 
 
@@ -211,6 +213,76 @@ router.put('/modify_password', authPrivRoutes, async (req, res) => {
 
 });
 
+
+// @route   *** PUT /team_members ***
+// @desc    *** Update status ***
+// @access  *** Private ***
+router.put('/update_status', authPrivRoutes, async (req, res) => {
+    const { error, value } = updateStatusValidation(req.body);
+
+    if (error) {
+        // console.log("error ", error);
+        // console.log('error:: ', JSON.stringify(error, null, 2));
+        console.log(JSON.stringify(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}), null, 2));
+        return res.status(400).json(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}));
+    }
+
+    const { status } = req.body;
+
+    // we're ready to update it in the db
+
+    try {
+        let teamMember = await TeamMember.findOne({ _id: req.user.id });
+        // if teamMember is not found 
+        if (!teamMember) return res.status(404).json({ errorMsg: "Can not found User" });
+        let toStringTeamstatus = [...teamMember.status.sort()]; // cette .sort() wa9t tkamel l'appli na7iha zeyda 
+        let toStringStatus = [...status.sort()];
+        if (toStringTeamstatus.toString() === toStringStatus.toString()) return res.status(404).json({ errorMsg: "no changes have been made" }); // aucune modification n'a été éffectuée
+
+        //  res.json({ toStringTeamstatus: toStringTeamstatus.toString(), toStringStatus: toStringStatus.toString(), teamMember: teamMember.status, status });
+        teamMember = await TeamMember.findOneAndUpdate({ _id: req.user.id }, { $set: { status } }, { new: true });
+        // else
+        return res.json(teamMember);
+
+
+    } catch (err) {
+        console.error("error::", err.message);
+        res.status(500).json({ errorMsg: 'Server error has occcured !' });
+    }
+});
+
+
+// @route   *** PUT /team_members ***
+// @desc    *** Update teachingLevel ***
+// @access  *** Private ***
+router.put('/update_teachinglevel', authPrivRoutes, async (req, res) => {
+    const { error, value } = updateTeachingLevelValidation(req.body);
+
+    if (error) {
+        // console.log("error ", error);
+        // console.log('error:: ', JSON.stringify(error, null, 2));
+        console.log(JSON.stringify(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}), null, 2));
+        return res.status(400).json(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}));
+    }
+
+    const { teachingLevel } = req.body;
+    // we're ready to update it in the db
+
+    try {
+        let teamMember;
+        if (teachingLevel) teamMember = await TeamMember.findOneAndUpdate({ _id: req.user.id }, { $set: { teachingLevel } }, { new: true });
+        else teamMember = await TeamMember.findOneAndUpdate({ _id: req.user.id }, { $unset: { teachingLevel: "" } }, { new: true });
+
+        // if teamMember is not found 
+        if (!teamMember) return res.status(404).json({ errorMsg: "Can not found User" });
+        // else
+        return res.json(teamMember);
+
+    } catch (err) {
+        console.error("error::", err.message);
+        res.status(500).json({ errorMsg: 'Server error has occcured !' });
+    }
+});
 
 
 module.exports = router;
