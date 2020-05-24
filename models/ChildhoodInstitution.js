@@ -47,6 +47,10 @@ const ChildhoodInstitutionSchema = mongoose.Schema({
     },
     animators: {
         type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'TeamMember' }]
+    },
+    isVisible: {
+        type: Boolean,
+        default: true
     }
 }, { timestamps: { createdAt: true, updatedAt: false } });
 

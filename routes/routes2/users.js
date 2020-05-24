@@ -3,8 +3,8 @@ const router = express.Router();
 const gravatar = require('gravatar');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const cron = require('node-cron');
 const Parent = require('../../models/Parent');
+const Bill = require('../../models/Bill');
 const TeamMember = require('../../models/TeamMember');
 const registerParentValidation = require('../validations/registerParentValidation');
 const updateParentValidation = require('../validations/updateParentValidation');
@@ -17,7 +17,7 @@ require('dotenv').config();
 // @route   *** GET /users ***
 // @desc    *** Test route ***
 // @access  *** Public ***
-router.get('/', (req, res) => {
+router.get('/test', (req, res) => {
     res.send('User route');
 });
 
@@ -363,35 +363,42 @@ router.put('/update_isverified_field', authPrivRoutes, async (req, res) => {
 });
 
 
-// @route   *** PUT /users ***
-// @desc    *** update paymentStatus to "Payé(e)" 
-// *** important : ki ta3mel routes for Bill na7iha men houn w 7otha 8ad w badel el lezem biensur
-// @access  *** Private ***
-router.put('/update_paymentStatus_field_to_paid', authPrivRoutes, async (req, res) => {
 
+// @route   *** GET /users ***
+// @desc    *** Get all parents by childhoodInstitution ***
+// @access  *** Private for all TeamMembers ***
+router.get('/', authPrivRoutes, async (req, res) => {
     try {
-        const parent = await Parent.findOneAndUpdate({ _id: req.user.id }, { $set: { paymentStatus: 'Has Paid' } }, { new: true });
-        if (!parent) return res.status(400).json({ errorMsg: 'Can not found the user' });
-        res.json(parent);
+        const userToAccess = await TeamMember.findById(req.user.id);
+        if (!userToAccess) return res.status(403).json({ accessError: 'Can not access this data' });
+        // access only for TeamMembers
+        const childhoodInstitution = req.user.childhoodInstitution;
+        const parents = await Parent.find({ childhoodInstitution }, '-password -__v');
+        // console.log(parents);
+        res.json(parents);
 
     } catch (err) {
-        console.error("error::", err.message);
-        res.status(500).json({ errorMsg: 'Server error has occcured !' });
+        console.error('error:: ', err.message);
+        res.status(500).json({ errorMsg: 'server Error' });
     }
-
 });
 
+router.get('/abcd', async (req, res) => {
+    try {
+        const bill = await Bill.findById('5ec9d9f7170a543a783b40c7');
+        if (!bill) return res.status(403).json({ accessError: 'Can not access' });
+        const date1 = bill.createdAt;
+        const date2 = new Date();
+        const diffTime = Math.abs(date2 - date1);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        console.log(diffDays);
+        res.json(bill);
 
-/*
-(() => {
-    cron.schedule('* * * * *', async () => {
-        const oneParent = await Parent.findOne({ 'phoneNumbers.mainPhoneNumber': '22585016' });
-        if (!oneParent) return console.log('error has occured !!!!');
-        console.log('oneParent::: ', JSON.stringify(oneParent, null, 2));
-
-    });
-})();
-*/
+    } catch (err) {
+        console.error('error:: ', err.message);
+        res.status(500).json({ errorMsg: 'server Error' });
+    }
+});
 
 
 module.exports = router;

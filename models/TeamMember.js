@@ -17,7 +17,7 @@ const TeamMemberSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    status: {   // checkbox          FoundationEmitter    manager    animator
+    status: {   // checkbox          foundationEmitter    manager    animator
         type: [{ type: String, required: true }],
         required: true
     },

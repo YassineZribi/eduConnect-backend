@@ -52,6 +52,10 @@ const ParentSchema = mongoose.Schema({
         type: Boolean,
         default: false
     },
+    isVisible: {
+        type: Boolean,
+        default: true
+    },
     avatar: {
         type: String,
         default: 'https://www.pngkey.com/png/full/436-4368930_animated-child-png-free-download-on-cartoon-children.png'
