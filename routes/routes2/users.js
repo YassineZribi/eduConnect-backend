@@ -363,7 +363,6 @@ router.put('/update_isverified_field', authPrivRoutes, async (req, res) => {
 });
 
 
-
 // @route   *** GET /users ***
 // @desc    *** Get all parents by childhoodInstitution ***
 // @access  *** Private for all TeamMembers ***
@@ -383,6 +382,10 @@ router.get('/', authPrivRoutes, async (req, res) => {
     }
 });
 
+module.exports = router;
+
+
+/*
 router.get('/abcd', async (req, res) => {
     try {
         const bill = await Bill.findById('5ec9d9f7170a543a783b40c7');
@@ -400,5 +403,4 @@ router.get('/abcd', async (req, res) => {
     }
 });
 
-
-module.exports = router;
+*/
