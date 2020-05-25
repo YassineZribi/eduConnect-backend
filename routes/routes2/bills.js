@@ -137,8 +137,8 @@ router.put('/modify_desc', authPrivRoutes, async (req, res) => {
 });
 
 // @route   *** Put /bills *** (a little bit like delete bill on the front but actually(really) it still exists on db )
-// @desc    *** modify isVisible field to false *** // with cron
-// @access  *** Private  ***
+// @desc    *** modify isVisible field to false *** 
+// @access  *** Private (only for manager) ***
 router.put('/test', async (req, res) => {
     const { billId } = req.body;
     try {
