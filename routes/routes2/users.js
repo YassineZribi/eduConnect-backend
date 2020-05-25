@@ -423,15 +423,81 @@ router.put('/update_isvisible_field', authPrivRoutes, async (req, res) => {
 // @route   *** GET /users ***
 // @desc    *** Get all verified parents by childhoodInstitution ***
 // @access  *** Private for all TeamMembers ***
-router.get('/', authPrivRoutes, async (req, res) => {
+router.get('/all_verified_parents', authPrivRoutes, async (req, res) => {
     try {
         const userToAccess = await TeamMember.findById(req.user.id);
         if (!userToAccess) return res.status(403).json({ accessError: 'Can not access this data' });
         // access only for TeamMembers
         const childhoodInstitution = req.user.childhoodInstitution;
         const parents = await Parent.find({ childhoodInstitution, isVerified: true, isVisible: true }, '-password -__v');
-        // console.log(parents);
+        if (parents.length === 0) return res.status(404).json({ errorMsg: 'there are no users available at the moment' });
         res.json(parents);
+
+    } catch (err) {
+        console.error('error:: ', err.message);
+        res.status(500).json({ errorMsg: 'server Error' });
+    }
+});
+
+
+// @route   *** GET /users ***
+// @desc    *** Get all Not Verified yet parents  by childhoodInstitution  ***
+// @access  *** Private (only for manager)  ***
+router.get('/parents_notverified_yet', authPrivRoutes, async (req, res) => {
+    try {
+        const userToAccess = await TeamMember.findById(req.user.id);
+        if (!userToAccess) return res.status(403).json({ accessError: 'Can not access this data' });
+        // access only for TeamMembers (only manager )
+        if (userToAccess.status.includes('manager')) {
+            const childhoodInstitution = req.user.childhoodInstitution;
+            const parents = await Parent.find({ childhoodInstitution, isVerified: false, isVisible: true }, '-password -__v');
+            if (parents.length === 0) return res.status(404).json({ errorMsg: 'there are no unverified users available at the moment' });
+            // console.log(parents);
+            res.json(parents);
+        } else return res.status(403).json({ accessError: 'Can not access this data (handling access)' });
+
+    } catch (err) {
+        console.error('error:: ', err.message);
+        res.status(500).json({ errorMsg: 'server Error' });
+    }
+});
+
+// @route   *** GET /users ***
+// @desc    *** Get one verified & visible parent by childhoodInstitution ***
+// @access  *** Private for all TeamMembers ***
+router.get('/one_verified_parent', authPrivRoutes, async (req, res) => {
+    try {
+        const userToAccess = await TeamMember.findById(req.user.id);
+        if (!userToAccess) return res.status(403).json({ accessError: 'Can not access this data' });
+        // access only for TeamMembers
+        const childhoodInstitution = req.user.childhoodInstitution;
+        const { parentId } = req.body;
+        const parent = await Parent.findOne({ _id: parentId, childhoodInstitution, isVerified: true, isVisible: true }, '-password -__v');
+        if (!parent) return res.status(404).json({ errorMsg: ' Can not find User' });
+        res.json(parent);
+
+    } catch (err) {
+        console.error('error:: ', err.message);
+        res.status(500).json({ errorMsg: 'server Error' });
+    }
+});
+
+// @route   *** GET /users ***
+// @desc    *** Get one parent not verified yet by childhoodInstitution ***
+// @access  *** Private for TeamMembers (only for manager) ***
+router.get('/one_parent_not_verified_yet', authPrivRoutes, async (req, res) => {
+    try {
+        const userToAccess = await TeamMember.findById(req.user.id);
+        // access only for TeamMembers
+        if (!userToAccess) return res.status(403).json({ accessError: 'Can not access this data' });
+        // access only for TeamMembers (only manager )
+        if (userToAccess.status.includes('manager')) {
+            const childhoodInstitution = req.user.childhoodInstitution;
+            const { parentId } = req.body;
+            const parent = await Parent.findOne({ _id: parentId, childhoodInstitution, isVerified: false, isVisible: true }, '-password -__v');
+            if (!parent) return res.status(404).json({ errorMsg: ' Can not find User' });
+            res.json(parent);
+        } else return res.status(403).json({ accessError: 'Can not access this data (handle access)' });
 
     } catch (err) {
         console.error('error:: ', err.message);
@@ -448,11 +514,33 @@ router.get('/all_children', authPrivRoutes, async (req, res) => {
         if (!userToAccess) return res.status(403).json({ accessError: 'Can not access this data' });
         // access only for TeamMembers
         const childhoodInstitution = req.user.childhoodInstitution;
-        const parents = await Parent.find({ childhoodInstitution, isVerified: true, isVisible: true }, 'children avatar');
-        // const children = parents.map(parent => ([...parent.children]));
+        let parents = await Parent.find({ childhoodInstitution, isVerified: true, isVisible: true }, 'children avatar');
+        if (parents.length === 0) return res.status(404).json({ errorMsg: 'there are no children to show because there are no verified parents subscribed in this childhood Institution' });
+        parents = parents.map(parent => parent.toJSON());
 
-        // console.log(parents);
-        res.json(parents);
+        // second method:
+        /*
+        for (let i = 0; i < parents.length; i++) {
+            for (let j = 0; j < parents[i].children.length; j++) {
+                parents[i].children[j] = { ...parents[i].children[j], avatar: parents[i].avatar, parentId: parents[i]._id };
+            }
+        }
+        childrens = parents.map(par => par.children).reduce((acc, cV) => [...acc, ...cV], []);
+        */
+
+
+        // first method
+        const childrens = parents.map(parent => ({
+            ...parent,
+            children: parent.children.map(child => ({
+                ...child,
+                avatar: parent.avatar,
+                parentId: parent._id
+            }))
+        })).map(par => par.children).reduce((acc, cV) => [...acc, ...cV], []);
+
+
+        res.json(childrens);
 
     } catch (err) {
         console.error('error:: ', err.message);
@@ -461,26 +549,10 @@ router.get('/all_children', authPrivRoutes, async (req, res) => {
 });
 
 
-// @route   *** GET /users ***
-// @desc    *** Get all parents by childhoodInstitution Not Verified yet ***
-// @access  *** Private (only for manager)  ***
-router.get('/parents_notverified_yet', authPrivRoutes, async (req, res) => {
-    try {
-        const userToAccess = await TeamMember.findById(req.user.id);
-        if (!userToAccess) return res.status(403).json({ accessError: 'Can not access this data' });
-        // access only for TeamMembers (only manager )
-        if (userToAccess.status.includes('manager')) {
-            const childhoodInstitution = req.user.childhoodInstitution;
-            const parents = await Parent.find({ childhoodInstitution, isVerified: false }, '-password -__v');
-            // console.log(parents);
-            res.json(parents);
-        } else return res.status(403).json({ accessError: 'Can not access this data (handling access)' });
 
-    } catch (err) {
-        console.error('error:: ', err.message);
-        res.status(500).json({ errorMsg: 'server Error' });
-    }
-});
+
+
+
 
 module.exports = router;
 

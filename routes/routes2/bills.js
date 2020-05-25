@@ -33,14 +33,15 @@ router.get('/test', (req, res) => {
 router.post('/', authPrivRoutes, async (req, res) => {
     try {
         const userToAccess = await TeamMember.findById(req.user.id);
-        if (!userToAccess) return res.status(403).json({ accessError: 'Can not access this data' });
+        if (!userToAccess) return res.status(403).json({ accessError: 'Can not access this data and create bill' });
+        // access only for TeamMembers (only for manager)
+        const { childhoodInstitutionId } = req.body;
+        if (userToAccess.status.includes('manager') && userToAccess.childhoodInstitution == childhoodInstitutionId) {
+            const { parentId } = req.body;
+            const childhoodInstitution = req.user.childhoodInstitution;
+            const parent = await Parent.findOne({ _id: parentId, childhoodInstitution });
+            if (!parent) return res.status(404).json({ errorMsg: 'Can not create a bill for a parent who is not registered in this institution' }); // on peut pas créer une facture pour un parent non inscrit dans cette instituion.
 
-        const { parentId } = req.body;
-        const childhoodInstitution = req.user.childhoodInstitution;
-        const parent = await Parent.findOne({ _id: parentId, childhoodInstitution });
-        if (!parent) return res.status(404).json({ errorMsg: 'Can not create a bill for a parent who is not registered in this institution' }); // on peut pas créer une facture pour un parent non inscrit dans cette instituion.
-
-        if (userToAccess.status.includes('manager')) {
             const bills = await Bill.find({ childhoodInstitution }).countDocuments();
             const plusOne = bills + 1;
             const invoiceNumber = pad_with_zeroes(plusOne, 4);
@@ -53,7 +54,7 @@ router.post('/', authPrivRoutes, async (req, res) => {
             await bill.save();
             console.log(bill);
             res.send(bill);
-        } else return res.status(403).json({ accessError: 'Can not access this data' });
+        } else return res.status(403).json({ accessError: 'Can not access this data and create bill (handle access)' });
 
     } catch (err) {
         console.error('error:: ', err.message);
@@ -66,21 +67,27 @@ router.post('/', authPrivRoutes, async (req, res) => {
 
 // @route   *** Put /bills ***
 // @desc    *** modify bill confirmation to true ***
-// @access  *** Private  ***
-router.put('/test', authPrivRoutes, async (req, res) => {
-    const { billId, totalAmount } = req.body;
+// @access  *** Private  (only for manager)***
+router.put('/confirmation_bill', authPrivRoutes, async (req, res) => {
     try {
-        let bill = await Bill.findOne({ _id: billId });
-        if (!bill) return res.status(404).json({ errorMsg: "Can not find the appropriate Bill to update it" });
+        const userToAccess = await TeamMember.findById(req.user.id);
+        if (!userToAccess) return res.status(403).json({ accessError: 'Can not access this data and modify bill confirmation' });
+        // access only for TeamMembers (only for manager)
+        const { childhoodInstitutionId } = req.body;
+        if (userToAccess.status.includes('manager') && userToAccess.childhoodInstitution == childhoodInstitutionId) {
+            const { billId, totalAmount } = req.body;
+            let bill = await Bill.findOne({ _id: billId, childhoodInstitution: req.user.childhoodInstitution });
+            if (!bill) return res.status(404).json({ errorMsg: "Can not find the appropriate Bill to update it" });
 
-        const yearToString = new Date().getFullYear().toString();
-        const month = new Date().getMonth() + 1;
-        const monthToString = pad_with_zeroes(month, 2);
-        const dayToString = new Date().getDate().toString();
-        //const allDate = `${dayToString}-${monthToString}-${yearToString}/${pad_with_zeroes(147, 4)}`;
-        const allDate = `${dayToString}-${monthToString}-${yearToString}`;
-        bill = await Bill.findOneAndUpdate({ _id: billId }, { $set: { isConfirmed: true, confirmationDate: allDate, paymentStatus: "Has Paid", totalAmount: Number(totalAmount) } }, { new: true });
-        res.send(bill);
+            const yearToString = new Date().getFullYear().toString();
+            const month = new Date().getMonth() + 1;
+            const monthToString = pad_with_zeroes(month, 2);
+            const dayToString = new Date().getDate().toString();
+            //const allDate = `${dayToString}-${monthToString}-${yearToString}/${pad_with_zeroes(147, 4)}`;
+            const allDate = `${dayToString}-${monthToString}-${yearToString}`;
+            bill = await Bill.findOneAndUpdate({ _id: billId, childhoodInstitution: req.user.childhoodInstitution }, { $set: { isConfirmed: true, confirmationDate: allDate, paymentStatus: "Has Paid", totalAmount: Number(totalAmount) } }, { new: true });
+            res.json(bill);
+        } else return res.status(403).json({ accessError: 'Can not access this data and modify bill confirmation (handle access)' });
 
     } catch (err) {
         console.error('error:: ', err.message);
@@ -89,8 +96,9 @@ router.put('/test', authPrivRoutes, async (req, res) => {
 });
 
 // @route   *** Put /bills ***
-// @desc    *** modify bill paymentStatus to Not Paid*** // with cron
+// @desc    *** modify bill paymentStatus to Not Paid*** // with cron 
 // @access  *** Private  ***
+/*
 router.put('/test', async (req, res) => {
     const { billId } = req.body;
     try {
@@ -104,17 +112,23 @@ router.put('/test', async (req, res) => {
         res.status(500).json({ errorMsg: 'server Error' });
     }
 });
+*/
 
 // @route   *** Put /bills ***
 // @desc    *** modify description *** 
-// @access  *** Private  ***
-router.put('/test', async (req, res) => {
-    const { billId, description } = req.body;
+// @access  *** Private  (for manager)***
+router.put('/modify_desc', authPrivRoutes, async (req, res) => {
     try {
-
-        bill = await Bill.findOneAndUpdate({ _id: billId }, { $set: { description } }, { new: true });
-        if (!bill) return res.status(404).json({ errorMsg: "Can not find the appropriate Bill to update it" });
-        res.send(bill);
+        const userToAccess = await TeamMember.findById(req.user.id);
+        if (!userToAccess) return res.status(403).json({ accessError: 'Can not access this data and modify the bill description' });
+        // access only for TeamMembers (only for manager)
+        const { childhoodInstitutionId } = req.body;
+        if (userToAccess.status.includes('manager') && userToAccess.childhoodInstitution == childhoodInstitutionId) {
+            const { billId, description } = req.body;
+            bill = await Bill.findOneAndUpdate({ _id: billId, childhoodInstitution: req.user.childhoodInstitution }, { $set: { description } }, { new: true });
+            if (!bill) return res.status(404).json({ errorMsg: "Can not find the appropriate Bill to update it" });
+            res.send(bill);
+        } else return res.status(403).json({ accessError: 'Can not access this data and modify the bill description (handle access)' });
 
     } catch (err) {
         console.error('error:: ', err.message);
