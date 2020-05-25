@@ -4,15 +4,21 @@ const ParentSchema = mongoose.Schema({
     father: {
         type: {
             firstName: { type: String, required: true },
-            lastName: { type: String, required: true }
+            lastName: { type: String, required: true },
+            nationalIdCard: { type: String, required: true }
         },
         required: true
     },
     mother: {
         type: {
             firstName: { type: String, required: true },
-            lastName: { type: String, required: true }
+            lastName: { type: String, required: true },
+            nationalIdCard: { type: String, required: true }
         },
+        required: true
+    },
+    accountName: {
+        type: String,
         required: true
     },
     phoneNumbers: {
@@ -36,7 +42,8 @@ const ParentSchema = mongoose.Schema({
                 firstName: { type: String, required: true },
                 lastName: { type: String, required: true },
                 dateOfBirth: { type: Date, required: true },
-                levelOfStudy: { type: String, required: true }
+                levelOfStudy: { type: String, required: true },
+                gender: { type: String, required: true } // girl boy
             }
         ],
         required: true

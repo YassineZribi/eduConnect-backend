@@ -7,9 +7,7 @@ const Parent = require('../../models/Parent');
 const Bill = require('../../models/Bill');
 const TeamMember = require('../../models/TeamMember');
 const registerParentValidation = require('../validations/registerParentValidation');
-const updateParentValidation = require('../validations/updateParentValidation');
-const updatePasswordValidation = require('../validations/updatePasswordValidation');
-const { updateMainPhoneNumber, updateOptionalPhoneNumber } = require('../validations/updatePhoneNumbers');
+const { updateParentProfilValidationByManager, updateParentProfilValidationByHim, updateMainPhoneNumber, updateOptionalPhoneNumber, updatePasswordValidation } = require('../validations/updateParentValidation');
 const authPrivRoutes = require('../../middleware/authPrivRoutes');
 require('dotenv').config();
 
@@ -50,12 +48,15 @@ router.post('/parent', async (req, res) => {
         const parent = new Parent({
             father: {
                 firstName: father.firstName,
-                lastName: father.lastName
+                lastName: father.lastName,
+                nationalIdCard: father.nationalIdCard
             },
             mother: {
                 firstName: mother.firstName,
-                lastName: mother.lastName
+                lastName: mother.lastName,
+                nationalIdCard: mother.nationalIdCard
             },
+            accountName: mother.firstName.concat(' ', mother.lastName), //*Salma Kallel*  // Mohamed Zribi   //Salma Kallel Zribi   // Salma ~ Mohamed   // Salma ~ Mohamed Zribi    // Famille Zribi  
             phoneNumbers: {
                 mainPhoneNumber: phoneNumbers.mainPhoneNumber,
                 optionalPhoneNumber: phoneNumbers.optionalPhoneNumber
@@ -102,43 +103,51 @@ router.post('/parent', async (req, res) => {
 
 
 // @route   *** PUT /users ***
-// @desc    *** Update User profile ***
-// @access  *** Private ***
-router.put('/', authPrivRoutes, async (req, res) => {
-    const { error, value } = updateParentValidation(req.body);
-
-    if (error) {
-        // console.log("error ", error);
-        // console.log('error:: ', JSON.stringify(error, null, 2));
-        console.log(JSON.stringify(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}), null, 2));
-        return res.status(400).json(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}));
-    }
-
-    const { father, mother, location, governorate, children } = req.body;
-
-    // Build profileobject
-    const updateParentFields = {
-        father: {
-            firstName: father.firstName,
-            lastName: father.lastName
-        },
-        mother: {
-            firstName: mother.firstName,
-            lastName: mother.lastName
-        },
-        location,
-        governorate,
-        children
-    };
-
-    // we're ready to update it in the db
-
+// @desc    *** Update parent profile ***
+// @access  *** Private (only for manager) ***
+router.put('/up_parent_profile_by_manager', authPrivRoutes, async (req, res) => {
     try {
-        const parent = await Parent.findOneAndUpdate({ _id: req.user.id }, { $set: updateParentFields }, { new: true });
-        // if a parent is not found 
-        if (!parent) return res.status(404).json({ errorMsg: "Can not found User" });
-        // else, update profil
-        return res.json(parent);
+        const userToAccess = await TeamMember.findById(req.user.id);
+        if (!userToAccess) return res.status(403).json({ accessError: 'Can not access this data' });
+        // access only for TeamMembers (only manager )
+        if (userToAccess.status.includes('manager')) {
+            const { parentId } = req.body;
+            let parent = await Parent.findOne({ _id: parentId, childhoodInstitution: req.user.childhoodInstitution });
+            // if a parent is not found 
+            if (!parent) return res.status(404).json({ errorMsg: "Can not find User with this id" });
+            // else
+            const { error, value } = updateParentProfilValidationByManager(req.body);
+            if (error) {
+                // console.log("error ", error);
+                // console.log('error:: ', JSON.stringify(error, null, 2));
+                console.log(JSON.stringify(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}), null, 2));
+                return res.status(400).json(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}));
+            }
+
+            const { father, mother, accountName, children } = req.body;
+
+            // Build profileobject
+            const updateParentFields = {
+                father: {
+                    firstName: father.firstName,
+                    lastName: father.lastName,
+                    nationalIdCard: father.nationalIdCard
+                },
+                mother: {
+                    firstName: mother.firstName,
+                    lastName: mother.lastName,
+                    nationalIdCard: mother.nationalIdCard
+                },
+                accountName,
+                children
+            };
+
+            // we're ready to update it in the db
+
+
+            parent = await Parent.findOneAndUpdate({ _id: parentId }, { $set: updateParentFields }, { new: true });
+            return res.json(parent);
+        } else return res.status(403).json({ accessError: 'Can not access this data (handling access)' });
 
 
     } catch (err) {
@@ -149,21 +158,60 @@ router.put('/', authPrivRoutes, async (req, res) => {
 
 
 // @route   *** PUT /users ***
-// @desc    *** Update mainPhoneNumber ***
-// @access  *** Private ***
-router.put('/phonenumbers/main', authPrivRoutes, async (req, res) => {
-    const { error, value } = updateMainPhoneNumber(req.body);
+// @desc    *** Update parent profile ***
+// @access  *** Private (only  the parent himself) ***
+router.put('/up_parent_profile_by_him', authPrivRoutes, async (req, res) => {
+    try {
+        let parent = await Parent.findOne({ _id: req.user.id });
+        if (!parent) return res.status(404).json({ errorMsg: "Can not find User with this id" });
+        const { error, value } = updateParentProfilValidationByHim(req.body);
+        if (error) {
+            // console.log("error ", error);
+            // console.log('error:: ', JSON.stringify(error, null, 2));
+            console.log(JSON.stringify(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}), null, 2));
+            return res.status(400).json(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}));
+        }
 
-    if (error) {
-        // console.log("error ", error);
-        // console.log('error:: ', JSON.stringify(error, null, 2));
-        console.log(JSON.stringify(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}), null, 2));
-        return res.status(400).json(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}));
+        const { location, governorate } = req.body;
+
+        // Build profileobject
+        const updateParentFields = {
+            location,
+            governorate
+        };
+
+        // we're ready to update it in the db
+
+        parent = await Parent.findOneAndUpdate({ _id: req.user.id }, { $set: updateParentFields }, { new: true });
+        return res.json(parent);
     }
 
-    const { mainPhoneNumber } = req.body;
+    catch (err) {
+        console.error("error::", err.message);
+        res.status(500).json({ errorMsg: 'Server error has occcured !' });
+    }
+});
 
+
+// @route   *** PUT /users ***
+// @desc    *** Update mainPhoneNumber ***
+// @access  *** Private (only  the parent himself) ***
+router.put('/phonenumbers/main', authPrivRoutes, async (req, res) => {
     try {
+        const parent = await Parent.findOne({ _id: req.user.id });
+        if (!parent) return res.status(404).json({ errorMsg: "Can not find User with this id" });
+        const { error, value } = updateMainPhoneNumber(req.body);
+
+        if (error) {
+            // console.log("error ", error);
+            // console.log('error:: ', JSON.stringify(error, null, 2));
+            console.log(JSON.stringify(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}), null, 2));
+            return res.status(400).json(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}));
+        }
+
+        const { mainPhoneNumber } = req.body;
+
+
         const mainPhoneNumberExists = await Parent.findOne({ 'phoneNumbers.mainPhoneNumber': mainPhoneNumber, _id: { $ne: req.user.id }, childhoodInstitution: req.user.childhoodInstitution });
 
         if (mainPhoneNumberExists) return res.status(400).json({ errorMsg: "mainPhoneNumber already exists" });
@@ -192,20 +240,23 @@ router.put('/phonenumbers/main', authPrivRoutes, async (req, res) => {
 
 // @route   *** PUT /users ***
 // @desc    *** Update optionalPhoneNumber ***
-// @access  *** Private ***
+// @access  *** Private (only the parent himself) ***
 router.put('/phonenumbers/optional', authPrivRoutes, async (req, res) => {
-    const { error, value } = updateOptionalPhoneNumber(req.body);
-
-    if (error) {
-        // console.log("error ", error);
-        // console.log('error:: ', JSON.stringify(error, null, 2));
-        console.log(JSON.stringify(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}), null, 2));
-        return res.status(400).json(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}));
-    }
-
-    const { optionalPhoneNumber } = req.body;
-
     try {
+        const parent = await Parent.findOne({ _id: req.user.id });
+        if (!parent) return res.status(404).json({ errorMsg: "Can not find User with this id" });
+        const { error, value } = updateOptionalPhoneNumber(req.body);
+
+        if (error) {
+            // console.log("error ", error);
+            // console.log('error:: ', JSON.stringify(error, null, 2));
+            console.log(JSON.stringify(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}), null, 2));
+            return res.status(400).json(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}));
+        }
+
+        const { optionalPhoneNumber } = req.body;
+
+
         const optionalPhoneNumberExists = await Parent.findOne({ 'phoneNumbers.optionalPhoneNumber': optionalPhoneNumber, _id: { $ne: req.user.id }, childhoodInstitution: req.user.childhoodInstitution });
 
         if (optionalPhoneNumberExists) return res.status(400).json({ errorMsg: "optionalPhoneNumber already exists" });
@@ -237,49 +288,25 @@ router.put('/phonenumbers/optional', authPrivRoutes, async (req, res) => {
 
 // @route   *** PUT /users ***
 // @desc    *** delete optionalPhoneNumber (çad "") ***
-// @access  *** Private ***
+// @access  *** Private (only the parent himself)***
 router.put('/phonenumbers/deleteoptional', authPrivRoutes, async (req, res) => {
-    /*
-    const { error, value } = updateOptionalPhoneNumber(req.body);
-
-    if (error) {
-        // console.log("error ", error);
-        // console.log('error:: ', JSON.stringify(error, null, 2));
-        console.log(JSON.stringify(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}), null, 2));
-        return res.status(400).json(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}));
-    }
-    */
     try {
         const newOptionalPhoneNumber = await Parent.findOneAndUpdate({ _id: req.user.id }, { $set: { 'phoneNumbers.optionalPhoneNumber': '' } }, { new: true });
+        if (!newOptionalPhoneNumber) return res.status(404).json({ errorMsg: "Can not find User with this id" });
         res.json(newOptionalPhoneNumber);
+
     } catch (err) {
         console.error("error::", err.message);
         res.status(500).json({ errorMsg: 'Server error has occcured !' });
     }
-
-
-
 });
 
 
 // @route   *** PUT /users ***
 // @desc    *** make an exchange between the 2 phoneNumbers ***
-// @access  *** Private ***
+// @access  *** Private (only the parent himself)***
 router.put('/phonenumbers/exchange', authPrivRoutes, async (req, res) => {
     try {
-        /*
-        const optionalPhoneNumberExists = await Parent.findOne({ 'phoneNumbers.optionalPhoneNumber': optionalPhoneNumber, _id: { $ne: req.user.id } });
-
-        if (optionalPhoneNumberExists) return res.status(400).json({ errorMsg: "optionalPhoneNumber already exists" });
-        */
-        /* Test le après avoir ajouter des instanciations du modèle TeamMember
-        
-        const PhoneNumberTeamMember = await TeamMember.findOne({ phoneNumber: optionalPhoneNumber });
-
-        if (PhoneNumberTeamMember) return res.status(400).json({ errorMsg: "optionalPhoneNumber already exists" });
-
-        */
-
         const me = await Parent.findOne({ _id: req.user.id });
         if (!me) return res.status(404).json({ errorMsg: "Can not find this user" });
         const { mainPhoneNumber, optionalPhoneNumber } = me.phoneNumbers;
@@ -307,20 +334,19 @@ router.put('/phonenumbers/exchange', authPrivRoutes, async (req, res) => {
 
 // @route   *** PUT /users ***
 // @desc    *** mofidy password ***
-// @access  *** Private ***
+// @access  *** Private (only the parent himself) ***
 router.put('/modify_password', authPrivRoutes, async (req, res) => {
-    const { error, value } = updatePasswordValidation(req.body);
-
-    if (error) {
-        // console.log("error ", error);
-        // console.log('error:: ', JSON.stringify(error, null, 2));
-        console.log(JSON.stringify(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}), null, 2));
-        return res.status(400).json(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}));
-    }
-
     try {
         const parent = await Parent.findOne({ _id: req.user.id });
-        if (!parent) return res.status(400).json({ errorMsg: 'Can not found the user' });
+        if (!parent) return res.status(404).json({ errorMsg: "Can not find User with this id" });
+        const { error, value } = updatePasswordValidation(req.body);
+
+        if (error) {
+            // console.log("error ", error);
+            // console.log('error:: ', JSON.stringify(error, null, 2));
+            console.log(JSON.stringify(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}), null, 2));
+            return res.status(400).json(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}));
+        }
 
         const { currentPassword, newPassword } = req.body;
         // checking if the password entered and the user password saved in the databse are equal
@@ -347,13 +373,44 @@ router.put('/modify_password', authPrivRoutes, async (req, res) => {
 
 // @route   *** PUT /users ***
 // @desc    *** update isVerified field to true ***
-// @access  *** Private ***
+// @access  *** Private (only for manager)***
 router.put('/update_isverified_field', authPrivRoutes, async (req, res) => {
 
     try {
-        const parent = await Parent.findOneAndUpdate({ _id: req.user.id }, { $set: { isVerified: true } }, { new: true });
-        if (!parent) return res.status(400).json({ errorMsg: 'Can not found the user' });
-        res.json(parent);
+        const userToAccess = await TeamMember.findById(req.user.id);
+        if (!userToAccess) return res.status(403).json({ accessError: 'Can not access this data' });
+        // access only for TeamMembers (only manager )
+        if (userToAccess.status.includes('manager')) {
+            const { parentId } = req.body;
+            const parent = await Parent.findOneAndUpdate({ _id: parentId, childhoodInstitution: req.user.childhoodInstitution }, { $set: { isVerified: true } }, { new: true });
+            if (!parent) return res.status(404).json({ errorMsg: 'this User is not found in our childhood institution' });
+
+            res.json(parent);
+        } else return res.status(403).json({ accessError: 'Can not access this data (handle access)' });
+
+    } catch (err) {
+        console.error("error::", err.message);
+        res.status(500).json({ errorMsg: 'Server error has occcured !' });
+    }
+
+});
+
+// @route   *** PUT /users ***
+// @desc    *** update isVisible field to false ***
+// @access  *** Private (only for manager)***
+router.put('/update_isvisible_field', authPrivRoutes, async (req, res) => {
+
+    try {
+        const userToAccess = await TeamMember.findById(req.user.id);
+        if (!userToAccess) return res.status(403).json({ accessError: 'Can not access this data' });
+        // access only for TeamMembers (only manager )
+        if (userToAccess.status.includes('manager')) {
+            const { parentId } = req.body;
+            const parent = await Parent.findOneAndUpdate({ _id: parentId, childhoodInstitution: req.user.childhoodInstitution }, { $set: { isVisible: false } }, { new: true });
+            if (!parent) return res.status(404).json({ errorMsg: 'this User is not found in our childhood institution' });
+
+            res.json(parent);
+        } else return res.status(403).json({ accessError: 'Can not access this data (handle access)' });
 
     } catch (err) {
         console.error("error::", err.message);
@@ -364,7 +421,7 @@ router.put('/update_isverified_field', authPrivRoutes, async (req, res) => {
 
 
 // @route   *** GET /users ***
-// @desc    *** Get all parents by childhoodInstitution ***
+// @desc    *** Get all verified parents by childhoodInstitution ***
 // @access  *** Private for all TeamMembers ***
 router.get('/', authPrivRoutes, async (req, res) => {
     try {
@@ -372,9 +429,52 @@ router.get('/', authPrivRoutes, async (req, res) => {
         if (!userToAccess) return res.status(403).json({ accessError: 'Can not access this data' });
         // access only for TeamMembers
         const childhoodInstitution = req.user.childhoodInstitution;
-        const parents = await Parent.find({ childhoodInstitution }, '-password -__v');
+        const parents = await Parent.find({ childhoodInstitution, isVerified: true, isVisible: true }, '-password -__v');
         // console.log(parents);
         res.json(parents);
+
+    } catch (err) {
+        console.error('error:: ', err.message);
+        res.status(500).json({ errorMsg: 'server Error' });
+    }
+});
+
+// @route   *** GET /users ***
+// @desc    *** Get all children of verified parents by childhoodInstitution ***
+// @access  *** Private for all TeamMembers ***
+router.get('/all_children', authPrivRoutes, async (req, res) => {
+    try {
+        const userToAccess = await TeamMember.findById(req.user.id);
+        if (!userToAccess) return res.status(403).json({ accessError: 'Can not access this data' });
+        // access only for TeamMembers
+        const childhoodInstitution = req.user.childhoodInstitution;
+        const parents = await Parent.find({ childhoodInstitution, isVerified: true, isVisible: true }, 'children avatar');
+        // const children = parents.map(parent => ([...parent.children]));
+
+        // console.log(parents);
+        res.json(parents);
+
+    } catch (err) {
+        console.error('error:: ', err.message);
+        res.status(500).json({ errorMsg: 'server Error' });
+    }
+});
+
+
+// @route   *** GET /users ***
+// @desc    *** Get all parents by childhoodInstitution Not Verified yet ***
+// @access  *** Private (only for manager)  ***
+router.get('/parents_notverified_yet', authPrivRoutes, async (req, res) => {
+    try {
+        const userToAccess = await TeamMember.findById(req.user.id);
+        if (!userToAccess) return res.status(403).json({ accessError: 'Can not access this data' });
+        // access only for TeamMembers (only manager )
+        if (userToAccess.status.includes('manager')) {
+            const childhoodInstitution = req.user.childhoodInstitution;
+            const parents = await Parent.find({ childhoodInstitution, isVerified: false }, '-password -__v');
+            // console.log(parents);
+            res.json(parents);
+        } else return res.status(403).json({ accessError: 'Can not access this data (handling access)' });
 
     } catch (err) {
         console.error('error:: ', err.message);

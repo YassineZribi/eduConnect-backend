@@ -44,19 +44,19 @@ const registerTeamMemberValidation = (reqBody) => {
             "any.required": `"childhoodInstitution" is a required field`
         }),
         governorate: Joi.string().empty().required().messages({     //  should be a select box
-            "string.base": `"username" should be a type of 'text'`,
+            "string.base": `"accountName" should be a type of 'text'`,
             "string.empty": `Ce champ doit être rempli !`,
-            "any.required": `"username" is a required field`
+            "any.required": `"accountName" is a required field`
         }),
         teachingLevel: Joi.string().allow('').messages({
-            "string.base": `"username" should be a type of 'text'`
+            "string.base": `"accountName" should be a type of 'text'`
         }),
         password: Joi.string().min(6).max(30).empty().required().messages({
-            "string.base": `"username" should be a type of 'text'`,
+            "string.base": `"accountName" should be a type of 'text'`,
             "string.empty": `Ce champ doit être rempli !`,
-            "string.min": `"username" should have a minimum length of 6 `,
-            "string.max": `"username" should have a maximum length of 30`,
-            "any.required": `"username" is a required field`
+            "string.min": `"accountName" should have a minimum length of 6 `,
+            "string.max": `"accountName" should have a maximum length of 30`,
+            "any.required": `"accountName" is a required field`
         })
 
     });

@@ -25,9 +25,9 @@ const updateTeamMemberProfileValidation = (reqBody) => {
             "any.required": `"nationalIdCard" is a required field`
         }),
         governorate: Joi.string().empty().required().messages({     //  should be a select box
-            "string.base": `"username" should be a type of 'text'`,
+            "string.base": `"accountName" should be a type of 'text'`,
             "string.empty": `Ce champ doit être rempli !`,
-            "any.required": `"username" is a required field`
+            "any.required": `"accountName" is a required field`
         })
 
     });
@@ -51,16 +51,16 @@ const updatephoneNumberValidation = (reqBody) => {
 const updatePasswordValidation = (reqBody) => {
     const schema = Joi.object({
         currentPassword: Joi.string().empty().required().messages({
-            "string.base": `"username" should be a type of 'text'`,
+            "string.base": `"accountName" should be a type of 'text'`,
             "string.empty": `Ce champ doit être rempli !`,
-            "any.required": `"username" is a required field`
+            "any.required": `"accountName" is a required field`
         }),
         newPassword: Joi.string().min(6).max(30).empty().required().messages({
-            "string.base": `"username" should be a type of 'text'`,
+            "string.base": `"accountName" should be a type of 'text'`,
             "string.empty": `Ce champ doit être rempli !`,
             "string.min": `"newPassword" should have a minimum length of 6 `,
-            "string.max": `"username" should have a maximum length of 30`,
-            "any.required": `"username" is a required field`
+            "string.max": `"accountName" should have a maximum length of 30`,
+            "any.required": `"accountName" is a required field`
         })
     });
     return schema.validate(reqBody, { abortEarly: false });
@@ -83,7 +83,7 @@ const updateStatusValidation = (reqBody) => {
 const updateTeachingLevelValidation = (reqBody) => {
     const schema = Joi.object({
         teachingLevel: Joi.string().pattern(new RegExp('^[3-5]*$')).length(1).allow('').messages({
-            "string.base": `"username" should be a type of 'text'`
+            "string.base": `"accountName" should be a type of 'text'`
         })
     });
     return schema.validate(reqBody, { abortEarly: false, allowUnknown: true });

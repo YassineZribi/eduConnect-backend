@@ -10,9 +10,9 @@ const loginValidation = (reqBody) => {
             "any.required": `"phoneNumber" is a required field`
         }),
         password: Joi.string().empty().required().messages({
-            "string.base": `"username" should be a type of 'text'`,
+            "string.base": `"accountName" should be a type of 'text'`,
             "string.empty": `Ce champ doit être rempli !`,
-            "any.required": `"username" is a required field`
+            "any.required": `"accountName" is a required field`
         })
     });
     return schema.validate(reqBody, { abortEarly: false, allowUnknown: true });

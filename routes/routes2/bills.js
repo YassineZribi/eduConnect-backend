@@ -146,12 +146,14 @@ router.get('/monthlybills', authPrivRoutes, async (req, res) => {
     try {
         const userToAccess = await TeamMember.findById(req.user.id);
         if (!userToAccess) return res.status(403).json({ accessError: 'Can not access this data' });
-        // access only for TeamMembers
-        const childhoodInstitution = req.user.childhoodInstitution;
-        const { monthNum } = req.body;
-        const monthlyBills = await Bill.find({ childhoodInstitution, monthOfCreation: Number(monthNum), isVisible: true }, '-__v');
-        // console.log(parents);
-        res.json(monthlyBills);
+        // access only for TeamMembers (manager and foundationEmitter)
+        if (userToAccess.status.includes('manager') || userToAccess.status.includes('foundationEmitter')) {
+            const childhoodInstitution = req.user.childhoodInstitution;
+            const { monthNum } = req.body;
+            const monthlyBills = await Bill.find({ childhoodInstitution, monthOfCreation: Number(monthNum), isVisible: true }, '-__v').populate('parent');
+            // console.log(parents);
+            res.json(monthlyBills);
+        } else return res.status(403).json({ accessError: 'Can not access this data' });
 
     } catch (err) {
         console.error('error:: ', err.message);
@@ -168,11 +170,14 @@ router.get('/monthlybills_withstatus', authPrivRoutes, async (req, res) => {
         const userToAccess = await TeamMember.findById(req.user.id);
         if (!userToAccess) return res.status(403).json({ accessError: 'Can not access this data' });
         // access only for TeamMembers
-        const childhoodInstitution = req.user.childhoodInstitution;
-        const { monthNum, paymentStatus } = req.body; // paymentStatus: 'Has Paid' / 'Waiting' / 'Not Paid';
-        const monthlyBillsWithStatus = await Bill.find({ childhoodInstitution, monthOfCreation: Number(monthNum), paymentStatus, isVisible: true }, '-__v');
-        // console.log(parents);
-        res.json(monthlyBillsWithStatus);
+        if (userToAccess.status.includes('manager') || userToAccess.status.includes('foundationEmitter')) {
+            const childhoodInstitution = req.user.childhoodInstitution;
+            const { monthNum, paymentStatus } = req.body; // paymentStatus: 'Has Paid' / 'Waiting' / 'Not Paid';
+            const monthlyBillsWithStatus = await Bill.find({ childhoodInstitution, monthOfCreation: Number(monthNum), paymentStatus, isVisible: true }, '-__v');
+            // console.log(parents);
+            res.json(monthlyBillsWithStatus);
+        } else return res.status(403).json({ accessError: 'Can not access this data' });
+
 
     } catch (err) {
         console.error('error:: ', err.message);
