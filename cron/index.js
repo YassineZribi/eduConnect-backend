@@ -1,5 +1,5 @@
-const cron = require('node-cron');
-const { generateBillsMonthly, setPaymentStatusFieldToNotPaid } = require('./bills');
+const cron = require("node-cron");
+const { generateBillsMonthly, setPaymentStatusFieldToNotPaid } = require("./bills");
 /*
 cron.schedule('* * * * *', async () => {
     console.log('Done.');

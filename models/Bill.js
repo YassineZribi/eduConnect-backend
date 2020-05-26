@@ -1,19 +1,19 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const BillSchema = mongoose.Schema({
     childhoodInstitution: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'ChildhoodInstitution',
+        ref: "ChildhoodInstitution",
         required: true
     },
     parent: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Parent',
+        ref: "Parent",
         required: true
     },
     paymentStatus: {
         type: String,
-        default: 'Waiting'             // Payé(e)       // En attente...   // Non payé(e)
+        default: "Waiting"             // Payé(e)       // En attente...   // Non payé(e)
     },                                   // Has Paid      // Waiting      // Not Paid
     totalAmount: {
         type: Number
@@ -39,7 +39,7 @@ const BillSchema = mongoose.Schema({
     },
     description: {
         type: String,
-        default: ''
+        default: ""
     }
 
 }, { timestamps: { createdAt: true, updatedAt: false } }); // Date de création de la facture (à chaque n^eme jour d'un nouvel mois)
@@ -75,4 +75,4 @@ function monthName() { // cette fonction n'est pas utilisée ici mais je l'ai la
 }
 
 
-module.exports = mongoose.model('Bill', BillSchema);
+module.exports = mongoose.model("Bill", BillSchema);
