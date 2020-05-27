@@ -1,40 +1,40 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const authPrivRoutes = require('../../middleware/authPrivRoutes');
-const jwt = require('jsonwebtoken');
-const loginValidation = require('../validations/loginValidation');
-require('dotenv').config();
-const bcrypt = require('bcryptjs');
-const Parent = require('../../models/Parent');
-const TeamMember = require('../../models/TeamMember');
+const authPrivRoutes = require("../../middleware/authPrivRoutes");
+const jwt = require("jsonwebtoken");
+const loginValidation = require("../validations/loginValidation");
+require("dotenv").config();
+const bcrypt = require("bcryptjs");
+const Parent = require("../../models/Parent");
+const TeamMember = require("../../models/TeamMember");
 
 
 // @route   *** GET /auth ***
 // @desc    *** Test route 1 ***
 // @access  *** Public ***
-router.get('/test1', (req, res) => {
-    res.send('Access Public route');
+router.get("/test1", (req, res) => {
+    res.send("Access Public route");
 });
 
 // @route   *** GET /auth ***
 // @desc    *** Test route 2 ***
 // @access  *** Private ***
-router.get('/test2', authPrivRoutes, async (req, res) => {
+router.get("/test2", authPrivRoutes, async (req, res) => {
     // res.send('Access Private route ');
     // res.json(req.user);
     try {
-        const user = await User.findById(req.user.id, '-password -__v');
-        res.json(user);
+        const parent = await Parent.findById(req.user.id, "-password -__v");
+        res.json(parent);
     } catch (err) { // if something goes wrong
-        console.error('error:: ', err.message);
-        res.status(404).json({ error: 'user NOT FOUND' });
+        console.error("error:: ", err.message);
+        res.status(404).json({ error: "user NOT FOUND" });
     }
 });
 
 // @route   *** POST /auth ***
 // @desc    *** Authenticate parent or teamMember & get token ***
 // @access  *** Public ***
-router.post('/', async (req, res) => {
+router.post("/", async (req, res) => {
     // Validate the data before authenticate the user (using @hapi/joi)
     const { error, value } = loginValidation(req.body);
 
@@ -49,12 +49,14 @@ router.post('/', async (req, res) => {
         const { phoneNum, password, childhoodInstitution } = req.body;
         let user = await TeamMember.findOne({ phoneNumber: phoneNum, childhoodInstitution: childhoodInstitution });
         if (!user) {
-            user = await Parent.findOne({ 'phoneNumbers.mainPhoneNumber': phoneNum, childhoodInstitution: childhoodInstitution });
-            if (!user) return res.status(400).json({ alert: 'Phone number or Password is wrong' }); // userNotFound: 'User not found'
-        };
+            user = await Parent.findOne({ "phoneNumbers.mainPhoneNumber": phoneNum, childhoodInstitution: childhoodInstitution });
+            if (!user) return res.status(400).json({ alert: "Phone number or Password is wrong" }); // userNotFound: 'User not found'
+        }
+        user = user.toJSON(); // AHMED ADDED IT TO GET USER OBJECT WITHOUT ANY ERROR
+
         // checking if the password entered and the user password saved in the databse are equal
         const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return res.status(401).json({ alert: 'Phone number or Password is wrong' }); // invalidPassword: 'Invalid Password'
+        if (!isMatch) return res.status(401).json({ alert: "Phone number or Password is wrong" }); // invalidPassword: 'Invalid Password'
 
         // Return (sending back) jsonwebtoken to the front-end
         const payload = {
@@ -65,15 +67,19 @@ router.post('/', async (req, res) => {
         };
         jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: 3600000 }, (err, token) => {
             if (err) throw err;
-            res.json({ token });
+            // user.password = undefined; method of ahmed
+            const loggedInUser = { ...user };
+            loggedInUser.password = undefined;
+
+            res.json({ token, loggedInUser });
         });
 
 
     } catch (err) {
         // if something goes wrong (server error or something's wrong with the server)
-        console.log('error::::', err);
+        console.log("error::::", err);
         // Le code de réponse HyperText Transfer Protocol (HTTP) d'erreur serveur 500 Internal Server Error indique que le serveur a rencontré un problème inattendu qui l'empêche de répondre à la requête.
-        res.status(500).json({ serverError: 'Server error was occured!!!' });
+        res.status(500).json({ serverError: "Server error was occured!!!" });
 
     }
 

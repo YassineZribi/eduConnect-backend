@@ -1,12 +1,12 @@
-const ChildhoodInstitution = require('../models/ChildhoodInstitution');
-const Parent = require('../models/Parent');
-const Bill = require('../models/Bill');
+const ChildhoodInstitution = require("../models/ChildhoodInstitution");
+const Parent = require("../models/Parent");
+const Bill = require("../models/Bill");
 
 function pad_with_zeroes(number, length) {
 
-    var my_string = '' + number;
+    var my_string = "" + number;
     while (my_string.length < length) {
-        my_string = '0' + my_string;
+        my_string = "0" + my_string;
     }
 
     return my_string;
@@ -14,9 +14,9 @@ function pad_with_zeroes(number, length) {
 }
 
 const generateBillsMonthly = async () => {
-    const allChildhoodInst = await ChildhoodInstitution.find({}, '_id');// .toJSON() or .toJson()
+    const allChildhoodInst = await ChildhoodInstitution.find({}, "_id");// .toJSON() or .toJson()
     allChildhoodInst.forEach(async childhoodInst => {
-        const parents = await Parent.find({ childhoodInstitution: childhoodInst._id, isVerified: true, isVisible: true }, '_id');
+        const parents = await Parent.find({ childhoodInstitution: childhoodInst._id, isVerified: true, isVisible: true }, "_id");
         let bills = await Bill.find({ childhoodInstitution: childhoodInst._id }).countDocuments();
         parents.forEach(async parent => {
             // console.log({ bills });
@@ -38,7 +38,7 @@ const generateBillsMonthly = async () => {
 
 const setPaymentStatusFieldToNotPaid = async () => {
     const currentMonth = new Date().getMonth() + 1;
-    const bills = await Bill.updateMany({ paymentStatus: 'Waiting', monthOfCreation: { $lt: currentMonth } }, { paymentStatus: 'Not Paid' });
+    const bills = await Bill.updateMany({ paymentStatus: "Waiting", monthOfCreation: { $lt: currentMonth } }, { paymentStatus: "Not Paid" });
     console.log(bills);
 };
 

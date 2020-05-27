@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const ParentSchema = mongoose.Schema({
     father: {
@@ -49,7 +49,7 @@ const ParentSchema = mongoose.Schema({
         required: true
     },
     childhoodInstitution: {
-        type: mongoose.Schema.Types.ObjectId, ref: 'ChildhoodInstitution', required: true
+        type: mongoose.Schema.Types.ObjectId, ref: "ChildhoodInstitution", required: true
     },
     password: {
         type: String,
@@ -65,14 +65,14 @@ const ParentSchema = mongoose.Schema({
     },
     avatar: {
         type: String,
-        default: 'https://www.pngkey.com/png/full/436-4368930_animated-child-png-free-download-on-cartoon-children.png'
+        default: "https://www.pngkey.com/png/full/436-4368930_animated-child-png-free-download-on-cartoon-children.png"
     }
 }, { timestamps: { createdAt: true, updatedAt: false } });
 
 function isOptionalPhoneNumberRequired() {
-    return typeof this.phoneNumbers.optionalPhoneNumber === 'string' ? false : true;
+    return typeof this.phoneNumbers.optionalPhoneNumber === "string" ? false : true;
 }
-module.exports = mongoose.model('Parent', ParentSchema);
+module.exports = mongoose.model("Parent", ParentSchema);
 
 
 /*

@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const CategorySchema = mongoose.Schema({
     categoryName: {      //    Nursery   Kindergarten   ChildrenClub   NurserySchool
@@ -16,8 +16,8 @@ const CategorySchema = mongoose.Schema({
 }, { timestamps: { createdAt: true, updatedAt: false } });
 
 function isMyFieldRequired() {
-    return typeof this.image === 'string' ? false : true;
+    return typeof this.image === "string" ? false : true;
 }
 
 
-module.exports = mongoose.model('Category', CategorySchema);
+module.exports = mongoose.model("Category", CategorySchema);

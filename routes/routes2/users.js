@@ -114,7 +114,7 @@ router.put("/up_parent_profile_by_manager/:childhoodInstitutionId/:parentId", au
         if (userToAccess.status.includes("manager") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
             if (!checkForHexRegExpFunction(req.params.parentId)) return res.status(400).json({ errorMsg: "Can not find User" });
             const childhoodInstitution = req.user.childhoodInstitution;
-            let parent = await Parent.findOne({ _id: req.params.parentId, childhoodInstitution });
+            let parent = await Parent.findOne({ _id: req.params.parentId, childhoodInstitution, isVisible: true, isVerified: true });
             // if a parent is not found 
             if (!parent) return res.status(404).json({ errorMsg: "Can not find User" });
             // else
@@ -164,7 +164,7 @@ router.put("/up_parent_profile_by_manager/:childhoodInstitutionId/:parentId", au
 // @access  *** Private (only  the parent himself) ***
 router.put("/up_parent_profile_by_him", authPrivRoutes, async (req, res) => {
     try {
-        let parent = await Parent.findOne({ _id: req.user.id });
+        let parent = await Parent.findOne({ _id: req.user.id, isVisible: true, isVerified: true });
         if (!parent) return res.status(404).json({ errorMsg: "Can not update profil because we can not find User with this id" });
         const { error, value } = updateParentProfilValidationByHim(req.body);
         if (error) {
@@ -200,7 +200,7 @@ router.put("/up_parent_profile_by_him", authPrivRoutes, async (req, res) => {
 // @access  *** Private (only  the parent himself) ***
 router.put("/phonenumbers/main", authPrivRoutes, async (req, res) => {
     try {
-        const parent = await Parent.findOne({ _id: req.user.id });
+        const parent = await Parent.findOne({ _id: req.user.id, isVisible: true, isVerified: true });
         if (!parent) return res.status(404).json({ errorMsg: "Can not find User with this id" });
         const { error, value } = updateMainPhoneNumber(req.body);
 
@@ -245,7 +245,7 @@ router.put("/phonenumbers/main", authPrivRoutes, async (req, res) => {
 // @access  *** Private (only the parent himself) ***
 router.put("/phonenumbers/optional", authPrivRoutes, async (req, res) => {
     try {
-        const parent = await Parent.findOne({ _id: req.user.id });
+        const parent = await Parent.findOne({ _id: req.user.id, isVisible: true, isVerified: true });
         if (!parent) return res.status(404).json({ errorMsg: "Can not find User with this id" });
         const { error, value } = updateOptionalPhoneNumber(req.body);
 
@@ -293,7 +293,7 @@ router.put("/phonenumbers/optional", authPrivRoutes, async (req, res) => {
 // @access  *** Private (only the parent himself)***
 router.put("/phonenumbers/deleteoptional", authPrivRoutes, async (req, res) => {
     try {
-        const newOptionalPhoneNumber = await Parent.findOneAndUpdate({ _id: req.user.id }, { $set: { "phoneNumbers.optionalPhoneNumber": "" } }, { new: true });
+        const newOptionalPhoneNumber = await Parent.findOneAndUpdate({ _id: req.user.id, isVisible: true, isVerified: true }, { $set: { "phoneNumbers.optionalPhoneNumber": "" } }, { new: true });
         if (!newOptionalPhoneNumber) return res.status(404).json({ errorMsg: "Can not find User with this id" });
         res.json(newOptionalPhoneNumber);
 
@@ -309,7 +309,7 @@ router.put("/phonenumbers/deleteoptional", authPrivRoutes, async (req, res) => {
 // @access  *** Private (only the parent himself)***
 router.put("/phonenumbers/exchange", authPrivRoutes, async (req, res) => {
     try {
-        const me = await Parent.findOne({ _id: req.user.id });
+        const me = await Parent.findOne({ _id: req.user.id, isVisible: true, isVerified: true });
         if (!me) return res.status(404).json({ errorMsg: "Can not find this user" });
         const { mainPhoneNumber, optionalPhoneNumber } = me.phoneNumbers;
         if (optionalPhoneNumber === "") return res.status(400).json({ errorMsg: "we cannot put the main number empty" });
@@ -339,7 +339,7 @@ router.put("/phonenumbers/exchange", authPrivRoutes, async (req, res) => {
 // @access  *** Private (only the parent himself) ***
 router.put("/modify_password", authPrivRoutes, async (req, res) => {
     try {
-        const parent = await Parent.findOne({ _id: req.user.id });
+        const parent = await Parent.findOne({ _id: req.user.id, isVisible: true, isVerified: true });
         if (!parent) return res.status(404).json({ errorMsg: "Can not find User with this id" });
         const { error, value } = updatePasswordValidation(req.body);
 
@@ -385,7 +385,7 @@ router.put("/update_isverified_field/:childhoodInstitutionId/:parentId", authPri
         if (userToAccess.status.includes("manager") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
             if (!checkForHexRegExpFunction(req.params.parentId)) return res.status(400).json({ errorMsg: "Can not find User" });
             const childhoodInstitution = req.user.childhoodInstitution;
-            const parent = await Parent.findOneAndUpdate({ _id: req.params.parentId, childhoodInstitution }, { $set: { isVerified: true } }, { new: true });
+            const parent = await Parent.findOneAndUpdate({ _id: req.params.parentId, childhoodInstitution, isVisible: true, isVerified: false }, { $set: { isVerified: true } }, { new: true });
             if (!parent) return res.status(404).json({ errorMsg: "Can not find User" });
 
             res.json(parent);
@@ -410,7 +410,7 @@ router.put("/update_isvisible_field/:childhoodInstitutionId/:parentId", authPriv
         if (userToAccess.status.includes("manager") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
             if (!checkForHexRegExpFunction(req.params.parentId)) return res.status(400).json({ errorMsg: "Can not find User" });
             const childhoodInstitution = req.user.childhoodInstitution;
-            const parent = await Parent.findOneAndUpdate({ _id: req.params.parentId, childhoodInstitution }, { $set: { isVisible: false } }, { new: true });
+            const parent = await Parent.findOneAndUpdate({ _id: req.params.parentId, childhoodInstitution, isVisible: true }, { $set: { isVisible: false } }, { new: true });
             if (!parent) return res.status(404).json({ errorMsg: "Can not find User" });
             res.json(parent);
         } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });

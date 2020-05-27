@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const ChildhoodInstitutionSchema = mongoose.Schema({
     institutionName: {
@@ -32,21 +32,21 @@ const ChildhoodInstitutionSchema = mongoose.Schema({
     },
     category: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Category',      //    Nursery   Kindergarten   ChildrenClub   NurserySchool
+        ref: "Category",      //    Nursery   Kindergarten   ChildrenClub   NurserySchool
         required: true
     },
     foundationEmitter: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'TeamMember'
+        ref: "TeamMember"
 
     },
     manager: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'TeamMember'
+        ref: "TeamMember"
 
     },
     animators: {
-        type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'TeamMember' }]
+        type: [{ type: mongoose.Schema.Types.ObjectId, ref: "TeamMember" }]
     },
     isVisible: {
         type: Boolean,
@@ -55,12 +55,12 @@ const ChildhoodInstitutionSchema = mongoose.Schema({
 }, { timestamps: { createdAt: true, updatedAt: false } });
 
 function isLogoRequired() {
-    return typeof this.logo === 'string' ? false : true;
+    return typeof this.logo === "string" ? false : true;
 }
 
 function isOptionalPhoneNumberRequired() {
-    return typeof this.phoneNumbers.mobilePhoneNumber.optionalPhoneNumber === 'string' ? false : true;
+    return typeof this.phoneNumbers.mobilePhoneNumber.optionalPhoneNumber === "string" ? false : true;
 }
 
 
-module.exports = mongoose.model('ChildhoodInstitution', ChildhoodInstitutionSchema);
+module.exports = mongoose.model("ChildhoodInstitution", ChildhoodInstitutionSchema);

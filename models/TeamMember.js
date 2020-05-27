@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const TeamMemberSchema = new mongoose.Schema({
     firstName: {
@@ -23,7 +23,7 @@ const TeamMemberSchema = new mongoose.Schema({
     },
     childhoodInstitution: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'ChildhoodInstitution',
+        ref: "ChildhoodInstitution",
         required: true
     },
     governorate: {
@@ -39,7 +39,7 @@ const TeamMemberSchema = new mongoose.Schema({
     },
     avatar: {
         type: String,
-        default: 'https://lh4.googleusercontent.com/proxy/Ep36GcwuLJ3MMM4bFTWf0rzoOu7jmPUEtkR2wGGRUQkNAI1X52JJd3OTXsnNktJIjaZtZV_QN-4pwYi1qANfSLkeS_YteDI',
+        default: "https://lh4.googleusercontent.com/proxy/Ep36GcwuLJ3MMM4bFTWf0rzoOu7jmPUEtkR2wGGRUQkNAI1X52JJd3OTXsnNktJIjaZtZV_QN-4pwYi1qANfSLkeS_YteDI",
 
     },
     createdOn: {
@@ -50,4 +50,4 @@ const TeamMemberSchema = new mongoose.Schema({
 });
 
 
-module.exports = mongoose.model('TeamMember', TeamMemberSchema);
+module.exports = mongoose.model("TeamMember", TeamMemberSchema);

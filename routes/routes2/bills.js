@@ -39,8 +39,8 @@ router.post("/:childhoodInstitutionId/:parentId", authPrivRoutes, async (req, re
         if (userToAccess.status.includes("manager") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
             if (!checkForHexRegExpFunction(req.params.parentId)) return res.status(400).json({ errorMsg: "Can not create a bill for a parent who is not registered in this institution" });
             const childhoodInstitution = req.user.childhoodInstitution;
-            const parent = await Parent.findOne({ _id: req.params.parentId, childhoodInstitution });
-            if (!parent) return res.status(404).json({ errorMsg: "Can not create a bill for a parent who is not registered in this institution" }); // on peut pas créer une facture pour un parent non inscrit dans cette instituion.
+            const parent = await Parent.findOne({ _id: req.params.parentId, childhoodInstitution, isVisible: true, isVerified: true });
+            if (!parent) return res.status(404).json({ errorMsg: "Can not create a bill for a parent who is not registered and verified in this institution" }); // on peut pas créer une facture pour un parent non inscrit dans cette instituion.
 
             const bills = await Bill.find({ childhoodInstitution }).countDocuments();
             const plusOne = bills + 1;
@@ -76,7 +76,7 @@ router.put("/confirmation_bill/:childhoodInstitutionId/:billId", authPrivRoutes,
         if (userToAccess.status.includes("manager") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
             if (!checkForHexRegExpFunction(req.params.billId)) return res.status(400).json({ errorMsg: "Can not find the appropriate Bill to update it" });
             const childhoodInstitution = req.user.childhoodInstitution;
-            let bill = await Bill.findOne({ _id: req.params.billId, childhoodInstitution });
+            let bill = await Bill.findOne({ _id: req.params.billId, childhoodInstitution, isVisible: true });
             if (!bill) return res.status(404).json({ errorMsg: "Can not find the appropriate Bill to update it" });
 
             const yearToString = new Date().getFullYear().toString();
@@ -86,7 +86,7 @@ router.put("/confirmation_bill/:childhoodInstitutionId/:billId", authPrivRoutes,
             //const allDate = `${dayToString}-${monthToString}-${yearToString}/${pad_with_zeroes(147, 4)}`;
             const allDate = `${dayToString}-${monthToString}-${yearToString}`;
             const { totalAmount } = req.body;
-            bill = await Bill.findOneAndUpdate({ _id: req.params.billId, childhoodInstitution }, { $set: { isConfirmed: true, confirmationDate: allDate, paymentStatus: "Has Paid", totalAmount: Number(totalAmount) } }, { new: true });
+            bill = await Bill.findOneAndUpdate({ _id: req.params.billId, childhoodInstitution, isVisible: true }, { $set: { isConfirmed: true, confirmationDate: allDate, paymentStatus: "Has Paid", totalAmount: Number(totalAmount) } }, { new: true });
             res.json(bill);
         } else return res.status(403).json({ accessError: "Can not access this data and modify bill confirmation (handle access)" });
 
@@ -127,7 +127,7 @@ router.put("/modify_desc/:childhoodInstitutionId/:billId", authPrivRoutes, async
             if (!checkForHexRegExpFunction(req.params.billId)) return res.status(400).json({ errorMsg: "Can not find the appropriate Bill to update it" });
             const { description } = req.body;
             const childhoodInstitution = req.user.childhoodInstitution;
-            const bill = await Bill.findOneAndUpdate({ _id: req.params.billId, childhoodInstitution }, { $set: { description } }, { new: true });
+            const bill = await Bill.findOneAndUpdate({ _id: req.params.billId, childhoodInstitution, isVisible: true }, { $set: { description } }, { new: true });
             if (!bill) return res.status(404).json({ errorMsg: "Can not find the appropriate Bill to update it" });
             res.json(bill);
         } else return res.status(403).json({ accessError: "Can not access this data and modify the bill description (handle access)" });
@@ -149,7 +149,7 @@ router.put("/isvisible_field_to_false/:childhoodInstitutionId/:billId", authPriv
         if (userToAccess.status.includes("manager") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
             if (!checkForHexRegExpFunction(req.params.billId)) return res.status(400).json({ errorMsg: "Can not find the appropriate Bill to update it" });
             const childhoodInstitution = req.user.childhoodInstitution;
-            const bill = await Bill.findOneAndUpdate({ _id: req.params.billId, childhoodInstitution }, { $set: { isVisible: false } }, { new: true });
+            const bill = await Bill.findOneAndUpdate({ _id: req.params.billId, childhoodInstitution, isVisible: true }, { $set: { isVisible: false } }, { new: true });
             if (!bill) return res.status(404).json({ errorMsg: "Can not find the appropriate Bill to update it" });
             res.json(bill);
         } else return res.status(403).json({ accessError: "Can not access this data and modify the bill description (handle access)" });
@@ -185,7 +185,7 @@ router.get("/monthlybills/:childhoodInstitutionId", authPrivRoutes, async (req, 
 
 // @route   *** GET /bills ***
 // @desc    *** Get all Bills by childhoodInstitution, paymentStatus & month ***
-// @access  *** Private for all TeamMembers ***
+// @access  *** Private for all TeamMembers sauf animator ***
 router.get("/monthlybills_withstatus/:childhoodInstitutionId", authPrivRoutes, async (req, res) => {
     try {
         const userToAccess = await TeamMember.findById(req.user.id);
@@ -199,6 +199,59 @@ router.get("/monthlybills_withstatus/:childhoodInstitutionId", authPrivRoutes, a
             res.json(monthlyBillsWithStatus);
         } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
 
+
+    } catch (err) {
+        console.error("error:: ", err.message);
+        res.status(500).json({ errorMsg: "server Error" });
+    }
+});
+
+
+// @route   *** GET /bills ***
+// @desc    *** get one bill *** 
+// @access  *** Private  (access for all sauf animator  )*** nb: access for the appropriate parent not all parents
+router.get("/onebill/:childhoodInstitutionId/:parentId/:billId", authPrivRoutes, async (req, res) => {
+    try {
+        let userToAccess = await TeamMember.findById(req.user.id);
+        if (!userToAccess) {
+            userToAccess = await Parent.findOne({ _id: req.user.id, isVisible: true, isVerified: true });
+            if ((!userToAccess) || (userToAccess._id != req.params.parentId)) return res.status(403).json({ accessError: "Can not access this data" });
+        }
+        if (userToAccess.status && (userToAccess.status.length === 1 && userToAccess.status.includes("animator"))) return res.status(403).json({ accessError: "Can not access this data" });
+        // access only for TeamMembers (only for manager)
+        if (userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+            if (!checkForHexRegExpFunction(req.params.billId) || !checkForHexRegExpFunction(req.params.parentId)) return res.status(400).json({ errorMsg: "Can not find the appropriate Bill" });
+            const childhoodInstitution = req.user.childhoodInstitution;
+            const bill = await Bill.findOne({ _id: req.params.billId, parent: req.params.parentId, childhoodInstitution, isVisible: true });
+            if (!bill) return res.status(404).json({ errorMsg: "Can not find the appropriate Bill" });
+            res.json(bill);
+        } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
+
+    } catch (err) {
+        console.error("error:: ", err.message);
+        res.status(500).json({ errorMsg: "server Error" });
+    }
+});
+
+// @route   *** GET /bills ***
+// @desc    *** get all user bills (of a particular user)  *** 
+// @access  *** Private  (access for all sauf animator  )*** nb: access for the appropriate parent not all parents
+router.get("/all_user_bills/:childhoodInstitutionId/:parentId", authPrivRoutes, async (req, res) => {
+    try {
+        let userToAccess = await TeamMember.findById(req.user.id);
+        if (!userToAccess) {
+            userToAccess = await Parent.findOne({ _id: req.user.id, isVisible: true, isVerified: true });
+            if ((!userToAccess) || (userToAccess._id != req.params.parentId)) return res.status(403).json({ accessError: "Can not access this data" });
+        }
+        if (userToAccess.status && (userToAccess.status.length === 1 && userToAccess.status.includes("animator"))) return res.status(403).json({ accessError: "Can not access this data" });
+        // access only for TeamMembers (only for manager)
+        if (userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+            if (!checkForHexRegExpFunction(req.params.parentId)) return res.status(400).json({ errorMsg: "Can not find the appropriate Bill" });
+            const childhoodInstitution = req.user.childhoodInstitution;
+            const bills = await Bill.find({ parent: req.params.parentId, childhoodInstitution, isVisible: true });
+            if (bills.length === 0) return res.status(404).json({ errorMsg: "Can not find user bills" });
+            res.json(bills);
+        } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
 
     } catch (err) {
         console.error("error:: ", err.message);

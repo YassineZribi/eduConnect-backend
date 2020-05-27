@@ -1,27 +1,27 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const gravatar = require('gravatar');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const Parent = require('../../models/Parent');
-const TeamMember = require('../../models/TeamMember');
-const registerTeamMemberValidation = require('../validations/registerTeamMemberValidation');
-const { updateTeamMemberProfileValidation, updatephoneNumberValidation, updatePasswordValidation, updateStatusValidation, updateTeachingLevelValidation } = require('../validations/updateTeamMemberValidation');
-const authPrivRoutes = require('../../middleware/authPrivRoutes');
-require('dotenv').config();
+const gravatar = require("gravatar");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const Parent = require("../../models/Parent");
+const TeamMember = require("../../models/TeamMember");
+const registerTeamMemberValidation = require("../validations/registerTeamMemberValidation");
+const { updateTeamMemberProfileValidation, updatephoneNumberValidation, updatePasswordValidation, updateStatusValidation, updateTeachingLevelValidation } = require("../validations/updateTeamMemberValidation");
+const authPrivRoutes = require("../../middleware/authPrivRoutes");
+require("dotenv").config();
 
 // @route   *** GET /team_members ***
 // @desc    *** Test route ***
 // @access  *** Public ***
-router.get('/', (req, res) => {
-    res.send('team_members route');
+router.get("/", (req, res) => {
+    res.send("team_members route");
 });
 
 
 // @route   *** POST /team_members ***
 // @desc    *** Register teamMember ***
 // @access  *** Public ***
-router.post('/', async (req, res) => {
+router.post("/", async (req, res) => {
     // Validate the data before registering the user (using @hapi/joi)
     const { error, value } = registerTeamMemberValidation(req.body);
 
@@ -34,11 +34,11 @@ router.post('/', async (req, res) => {
     try {
         // After validation => Checking if the user is already exist or not in the databse by checking his email
         const { phoneNumber, childhoodInstitution } = req.body;
-        const parentExists = await Parent.findOne({ 'phoneNumbers.mainPhoneNumber': phoneNumber, childhoodInstitution: childhoodInstitution });
-        if (parentExists) return res.status(400).json({ errorMsg: 'User already exists' });
+        const parentExists = await Parent.findOne({ "phoneNumbers.mainPhoneNumber": phoneNumber, childhoodInstitution: childhoodInstitution });
+        if (parentExists) return res.status(400).json({ errorMsg: "User already exists" });
 
         const teamMemberExists = await TeamMember.findOne({ phoneNumber: phoneNumber, childhoodInstitution: childhoodInstitution });
-        if (teamMemberExists) return res.status(400).json({ errorMsg: 'User already exists' });
+        if (teamMemberExists) return res.status(400).json({ errorMsg: "User already exists" });
 
         const { firstName, lastName, nationalIdCard, status, governorate, teachingLevel, password } = req.body;
 
@@ -85,9 +85,9 @@ router.post('/', async (req, res) => {
 
     } catch (err) {
         // if something goes wrong (server error or something's wrong with the server)
-        console.log('error::', err.message);
+        console.log("error::", err.message);
         // Le code de réponse HyperText Transfer Protocol (HTTP) d'erreur serveur 500 Internal Server Error indique que le serveur a rencontré un problème inattendu qui l'empêche de répondre à la requête.
-        res.status(500).json({ serverError: 'Server error was occured!!!' });
+        res.status(500).json({ serverError: "Server error was occured!!!" });
 
     }
 
@@ -97,7 +97,7 @@ router.post('/', async (req, res) => {
 // @route   *** PUT /team_members ***
 // @desc    *** Update team member profile ***
 // @access  *** Private ***
-router.put('/', authPrivRoutes, async (req, res) => {
+router.put("/", authPrivRoutes, async (req, res) => {
     const { error, value } = updateTeamMemberProfileValidation(req.body);
 
     if (error) {
@@ -129,7 +129,7 @@ router.put('/', authPrivRoutes, async (req, res) => {
 
     } catch (err) {
         console.error("error::", err.message);
-        res.status(500).json({ errorMsg: 'Server error has occcured !' });
+        res.status(500).json({ errorMsg: "Server error has occcured !" });
     }
 });
 
@@ -137,7 +137,7 @@ router.put('/', authPrivRoutes, async (req, res) => {
 // @route   *** PUT /users ***
 // @desc    *** Update phoneNumber ***
 // @access  *** Private ***
-router.put('/update_phonenumber', authPrivRoutes, async (req, res) => {
+router.put("/update_phonenumber", authPrivRoutes, async (req, res) => {
     const { error, value } = updatephoneNumberValidation(req.body);
 
     if (error) {
@@ -155,7 +155,7 @@ router.put('/update_phonenumber', authPrivRoutes, async (req, res) => {
         if (phoneNumberExists) return res.status(400).json({ errorMsg: "phoneNumber already exists" });
         //Testes le après avoir ajouter des instanciations du modèle TeamMember
 
-        const PhoneNumberTeamMember = await Parent.findOne({ 'phoneNumbers.mainPhoneNumber': phoneNumber, childhoodInstitution: req.user.childhoodInstitution });
+        const PhoneNumberTeamMember = await Parent.findOne({ "phoneNumbers.mainPhoneNumber": phoneNumber, childhoodInstitution: req.user.childhoodInstitution });
 
         if (PhoneNumberTeamMember) return res.status(400).json({ errorMsg: "phoneNumber already exists" });
 
@@ -169,7 +169,7 @@ router.put('/update_phonenumber', authPrivRoutes, async (req, res) => {
 
     } catch (err) {
         console.error("error::", err.message);
-        res.status(500).json({ errorMsg: 'Server error has occcured !' });
+        res.status(500).json({ errorMsg: "Server error has occcured !" });
     }
 
 });
@@ -177,7 +177,7 @@ router.put('/update_phonenumber', authPrivRoutes, async (req, res) => {
 // @route   *** PUT /users ***
 // @desc    *** modify password ***
 // @access  *** Private ***
-router.put('/modify_password', authPrivRoutes, async (req, res) => {
+router.put("/modify_password", authPrivRoutes, async (req, res) => {
     const { error, value } = updatePasswordValidation(req.body);
 
     if (error) {
@@ -189,26 +189,26 @@ router.put('/modify_password', authPrivRoutes, async (req, res) => {
 
     try {
         const teamMember = await TeamMember.findOne({ _id: req.user.id });
-        if (!teamMember) return res.status(400).json({ errorMsg: 'Can not found the user' });
+        if (!teamMember) return res.status(400).json({ errorMsg: "Can not found the user" });
 
         const { currentPassword, newPassword } = req.body;
         // checking if the password entered and the user password saved in the databse are equal
         const isMatch = await bcrypt.compare(currentPassword, teamMember.password);
-        if (!isMatch) return res.status(401).json({ errorMsg: 'Invalid current password' });
+        if (!isMatch) return res.status(401).json({ errorMsg: "Invalid current password" });
 
 
         if (currentPassword === newPassword) return res.status(400).json({ msg: "You kept the old password !" });
 
         // before saving our newPassword in the db, we must encrypt it (using bcrypt) -> (we shouldn't store password in database in plain text)
         const salt = await bcrypt.genSalt(10);
-        newPassEncrypted = await bcrypt.hash(newPassword, salt);
+        const newPassEncrypted = await bcrypt.hash(newPassword, salt);
 
         const userAfterChangingPassword = await TeamMember.findOneAndUpdate({ _id: req.user.id }, { $set: { password: newPassEncrypted } }, { new: true });
         res.json(userAfterChangingPassword);
 
     } catch (err) {
         console.error("error::", err.message);
-        res.status(500).json({ errorMsg: 'Server error has occcured !' });
+        res.status(500).json({ errorMsg: "Server error has occcured !" });
     }
 
 });
@@ -217,7 +217,7 @@ router.put('/modify_password', authPrivRoutes, async (req, res) => {
 // @route   *** PUT /team_members ***
 // @desc    *** Update status ***
 // @access  *** Private ***
-router.put('/update_status', authPrivRoutes, async (req, res) => {
+router.put("/update_status", authPrivRoutes, async (req, res) => {
     const { error, value } = updateStatusValidation(req.body);
 
     if (error) {
@@ -247,7 +247,7 @@ router.put('/update_status', authPrivRoutes, async (req, res) => {
 
     } catch (err) {
         console.error("error::", err.message);
-        res.status(500).json({ errorMsg: 'Server error has occcured !' });
+        res.status(500).json({ errorMsg: "Server error has occcured !" });
     }
 });
 
@@ -255,7 +255,7 @@ router.put('/update_status', authPrivRoutes, async (req, res) => {
 // @route   *** PUT /team_members ***
 // @desc    *** Update teachingLevel ***
 // @access  *** Private ***
-router.put('/update_teachinglevel', authPrivRoutes, async (req, res) => {
+router.put("/update_teachinglevel", authPrivRoutes, async (req, res) => {
     const { error, value } = updateTeachingLevelValidation(req.body);
 
     if (error) {
@@ -280,7 +280,7 @@ router.put('/update_teachinglevel', authPrivRoutes, async (req, res) => {
 
     } catch (err) {
         console.error("error::", err.message);
-        res.status(500).json({ errorMsg: 'Server error has occcured !' });
+        res.status(500).json({ errorMsg: "Server error has occcured !" });
     }
 });
 
