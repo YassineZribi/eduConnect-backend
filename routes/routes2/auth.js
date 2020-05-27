@@ -51,6 +51,9 @@ router.post("/", async (req, res) => {
         if (!user) {
             user = await Parent.findOne({ "phoneNumbers.mainPhoneNumber": phoneNum, childhoodInstitution: childhoodInstitution });
             if (!user) return res.status(400).json({ alert: "Phone number or Password is wrong" }); // userNotFound: 'User not found'
+
+            if (!user.isVisible && !user.isVerified) return res.status(400).json({ errorMsg: "For security reasons, your account has not been approved by the administration of the institution. thanks for your understanding." }); // Pour des raisons de sécurité, votre compte n'a pas été approuvé par l'administration de l'institution. Merci pour votre compréhension.
+            if (!user.isVisible && user.isVerified) return res.status(400).json({ errorMsg: "Your account has been deleted by the administration of the institution. Thanks for your understanding." }); // Votre compte a été supprimé par l'administration de l'institution. Merci pour votre compréhension.
         }
         user = user.toJSON(); // AHMED ADDED IT TO GET USER OBJECT WITHOUT ANY ERROR
 
