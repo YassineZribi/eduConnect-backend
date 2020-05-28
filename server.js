@@ -25,8 +25,8 @@ app.use("/posts", require("./routes/posts"));
 
 
 app.get("/", (req, res) => {
-  console.log("get request success");
-  res.send("API Running");
+    console.log("get request success");
+    res.send("API Running");
 });
 
 
@@ -36,20 +36,20 @@ app.get("/", (req, res) => {
 
 // Connect Server to database + Make Server listenning 
 (async () => {
-  try {
-    await mongoose.connect(process.env.DB_CONNECTION, { useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false });
-    console.log("mongoDB database connected to the Server...");
-    const PORT = process.env.PORT || 8888;
-    app.listen(PORT, err => {
-      if (err) {
-        console.log("Listening error: ", err);
-      } else {
-        console.log(`Server is running on port ${PORT}`);
-      }
-    });
-  } catch (err) {
-    console.error("error message::: ", err.message);
-    // Exit process with failure
-    process.exit(1);
-  }
+    try {
+        await mongoose.connect(process.env.DB_CONNECTION, { useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false });
+        console.log("mongoDB database connected to the Server...");
+        const PORT = process.env.PORT || 8888;
+        app.listen(PORT, err => {
+            if (err) {
+                console.log("Listening error: ", err);
+            } else {
+                console.log(`Server is running on port ${PORT}`);
+            }
+        });
+    } catch (err) {
+        console.error("error message::: ", err.message);
+        // Exit process with failure
+        process.exit(1);
+    }
 })();

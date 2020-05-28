@@ -36,6 +36,10 @@ const ParentSchema = mongoose.Schema({
         type: String,
         required: true
     },
+    status: {
+        type: [{ type: String }],
+        default: ["parent"]
+    },
     children: {
         type: [
             {
@@ -55,13 +59,17 @@ const ParentSchema = mongoose.Schema({
         type: String,
         required: true
     },
-    isVerified: {
+    isAccepted: {
         type: Boolean,
         default: false
     },
     isVisible: {
         type: Boolean,
         default: true
+    },
+    isAllowed: {
+        type: Boolean,
+        default: false
     },
     avatar: {
         type: String,

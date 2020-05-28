@@ -39,7 +39,7 @@ router.post("/:childhoodInstitutionId/:parentId", authPrivRoutes, async (req, re
         if (userToAccess.status.includes("manager") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
             if (!checkForHexRegExpFunction(req.params.parentId)) return res.status(400).json({ errorMsg: "Can not create a bill for a parent who is not registered in this institution" });
             const childhoodInstitution = req.user.childhoodInstitution;
-            const parent = await Parent.findOne({ _id: req.params.parentId, childhoodInstitution, isVisible: true, isVerified: true });
+            const parent = await Parent.findOne({ _id: req.params.parentId, childhoodInstitution, isVisible: true, isAccepted: true });
             if (!parent) return res.status(404).json({ errorMsg: "Can not create a bill for a parent who is not registered and verified in this institution" }); // on peut pas créer une facture pour un parent non inscrit dans cette instituion.
 
             const bills = await Bill.find({ childhoodInstitution }).countDocuments();
@@ -214,7 +214,7 @@ router.get("/onebill/:childhoodInstitutionId/:parentId/:billId", authPrivRoutes,
     try {
         let userToAccess = await TeamMember.findById(req.user.id);
         if (!userToAccess) {
-            userToAccess = await Parent.findOne({ _id: req.user.id, isVisible: true, isVerified: true });
+            userToAccess = await Parent.findOne({ _id: req.user.id, isVisible: true, isAccepted: true });
             if ((!userToAccess) || (userToAccess._id != req.params.parentId)) return res.status(403).json({ accessError: "Can not access this data" });
         }
         if (userToAccess.status && (userToAccess.status.length === 1 && userToAccess.status.includes("animator"))) return res.status(403).json({ accessError: "Can not access this data" });
@@ -240,7 +240,7 @@ router.get("/all_user_bills/:childhoodInstitutionId/:parentId", authPrivRoutes, 
     try {
         let userToAccess = await TeamMember.findById(req.user.id);
         if (!userToAccess) {
-            userToAccess = await Parent.findOne({ _id: req.user.id, isVisible: true, isVerified: true });
+            userToAccess = await Parent.findOne({ _id: req.user.id, isVisible: true, isAccepted: true });
             if ((!userToAccess) || (userToAccess._id != req.params.parentId)) return res.status(403).json({ accessError: "Can not access this data" });
         }
         if (userToAccess.status && (userToAccess.status.length === 1 && userToAccess.status.includes("animator"))) return res.status(403).json({ accessError: "Can not access this data" });

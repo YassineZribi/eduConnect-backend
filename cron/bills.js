@@ -16,7 +16,7 @@ function pad_with_zeroes(number, length) {
 const generateBillsMonthly = async () => {
     const allChildhoodInst = await ChildhoodInstitution.find({}, "_id");// .toJSON() or .toJson()
     allChildhoodInst.forEach(async childhoodInst => {
-        const parents = await Parent.find({ childhoodInstitution: childhoodInst._id, isVerified: true, isVisible: true }, "_id");
+        const parents = await Parent.find({ childhoodInstitution: childhoodInst._id, isAccepted: true, isVisible: true }, "_id");
         let bills = await Bill.find({ childhoodInstitution: childhoodInst._id }).countDocuments();
         parents.forEach(async parent => {
             // console.log({ bills });

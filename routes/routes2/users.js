@@ -21,10 +21,10 @@ router.get("/test", (req, res) => {
 });
 
 
-// @route   *** POST /users ***
+// @route   *** POST /users ***  TODO: Done
 // @desc    *** Register parent ***
 // @access  *** Public ***
-router.post("/parent", async (req, res) => {
+router.post("/create_parent/:childhoodInstitutionId", async (req, res) => {
     // Validate the data before registering the user (using @hapi/joi)
     const { error, value } = registerParentValidation(req.body);
 
@@ -35,12 +35,12 @@ router.post("/parent", async (req, res) => {
         return res.status(400).json(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}));
     }
     try {
-        // After validation => Checking if the user is already exist or not in the databse by checking his email
-        const { phoneNumbers, childhoodInstitution } = req.body;
-        const parentExists = await Parent.findOne({ "phoneNumbers.mainPhoneNumber": phoneNumbers.mainPhoneNumber, childhoodInstitution: childhoodInstitution });
+        // After validation => Checking if the user is already exist or not in the databse by checking his mainPhoneNumber
+        const { phoneNumbers } = req.body;
+        const parentExists = await Parent.findOne({ "phoneNumbers.mainPhoneNumber": phoneNumbers.mainPhoneNumber, childhoodInstitution: req.params.childhoodInstitutionId });
         if (parentExists) return res.status(400).json({ errorMsg: "User already exists" });
 
-        const teamMemberExists = await TeamMember.findOne({ phoneNumber: phoneNumbers.mainPhoneNumber, childhoodInstitution: childhoodInstitution });
+        const teamMemberExists = await TeamMember.findOne({ phoneNumber: phoneNumbers.mainPhoneNumber, childhoodInstitution: req.params.childhoodInstitutionId });
         if (teamMemberExists) return res.status(400).json({ errorMsg: "User already exists" });
 
         const { father, mother, location, governorate, children, password } = req.body;
@@ -65,7 +65,7 @@ router.post("/parent", async (req, res) => {
             location,
             governorate,
             children,
-            childhoodInstitution,
+            childhoodInstitution: req.params.childhoodInstitutionId,
             password, // now this password is not encrypted yet
 
         });
@@ -78,8 +78,15 @@ router.post("/parent", async (req, res) => {
         // All right , now we can Interact with the database and register the user 
         await parent.save();
 
+        // if (parent.isVisible && !parent.isAccepted && !parent.isAllowed) : (default case at registration)
+        return res.status(403).json({ alertMsg: "Your account has been successfully created. For security reasons and to protect our Children, all newly created accounts must be examined before having access. You will receive a confirmation message on your telephone number: ... Thank you for your understanding." }); // Votre compte a été créé avec succés. Pour des raisons de sécurité et pour protéger nos Enfants , tous les comptes nouvellement créés doivent être examiner avant d'avoir l'accées.  Vous receverez un message de confirmation sur votre numéro de téléphone: ... Merci pour votre compréhension.
+
+
+
 
         // Return (sending back) jsonwebtoken once the user registered (the reason I'm reterning jwt is because in the front end when a user registers I want him to get logged in right away . and in order to logged in right away you must have that token)
+
+        /*
         const payload = {
             user: {
                 id: parent.id,
@@ -90,6 +97,8 @@ router.post("/parent", async (req, res) => {
             if (err) throw err;
             res.json({ token });
         });
+        */
+
 
     } catch (err) {
         // if something goes wrong (server error or something's wrong with the server)
@@ -103,18 +112,103 @@ router.post("/parent", async (req, res) => {
 });
 
 
-// @route   *** PUT /users ***
+// @route   *** PUT /users *** TODO: Done 
+// @desc    *** Accept parent or animator  ***
+// @access  *** Private (only for manager)***
+router.put("/accept_user/:childhoodInstitutionId/:userId", authPrivRoutes, async (req, res) => {
+
+    try {
+        const userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
+        if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
+        // access only for TeamMembers (only manager )
+        if (userToAccess.status.includes("manager") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+            if (!checkForHexRegExpFunction(req.params.userId)) return res.status(400).json({ errorMsg: "Can not find User" });
+            const childhoodInstitution = req.user.childhoodInstitution;
+            let user = await TeamMember.findOneAndUpdate({ _id: req.params.userId, childhoodInstitution, status: { $in: ["animator"] }, isVisible: true, isAccepted: false, isAllowed: false }, { $set: { isAccepted: true, isAllowed: true } }, { new: true });
+            if (!user) {
+                user = await Parent.findOneAndUpdate({ _id: req.params.userId, childhoodInstitution, isVisible: true, isAccepted: false, isAllowed: false }, { $set: { isAccepted: true, isAllowed: true } }, { new: true });
+                if (!user) return res.status(404).json({ errorMsg: "Can not find User" });
+            }
+            res.json(user);
+
+        } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
+
+    } catch (err) {
+        console.error("error::", err.message);
+        res.status(500).json({ errorMsg: "Server error has occcured !" });
+    }
+
+});
+
+// @route   *** PUT /users *** TODO: Done
+// @desc    *** Refused parent or animator  *** delete it from the start
+// @access  *** Private (only for manager)***
+router.put("/refuse_user/:childhoodInstitutionId/:userId", authPrivRoutes, async (req, res) => {
+
+    try {
+        const userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
+        if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
+        // access only for TeamMembers (only manager )
+        if (userToAccess.status.includes("manager") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+            if (!checkForHexRegExpFunction(req.params.userId)) return res.status(400).json({ errorMsg: "Can not find User" });
+            const childhoodInstitution = req.user.childhoodInstitution;
+            let user = await TeamMember.findOneAndUpdate({ _id: req.params.userId, childhoodInstitution, status: { $in: ["animator"] }, isVisible: true, isAccepted: false, isAllowed: false }, { $set: { isVisible: false } }, { new: true });
+            if (!user) {
+                user = await Parent.findOneAndUpdate({ _id: req.params.userId, childhoodInstitution, isVisible: true, isAccepted: false, isAllowed: false }, { $set: { isVisible: false } }, { new: true });
+                if (!user) return res.status(404).json({ errorMsg: "Can not find User" });
+            }
+            res.json(user);
+
+        } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
+
+    } catch (err) {
+        console.error("error::", err.message);
+        res.status(500).json({ errorMsg: "Server error has occcured !" });
+    }
+
+});
+
+// @route   *** PUT /users *** TODO: Done
+// @desc    *** remove parent or animator after accepting it before ***
+// @access  *** Private (only for manager)***
+router.put("/delete_user/:childhoodInstitutionId/:userId", authPrivRoutes, async (req, res) => {
+
+    try {
+        const userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
+        if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
+        // access only for TeamMembers (only manager )
+        if (userToAccess.status.includes("manager") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+            if (!checkForHexRegExpFunction(req.params.userId)) return res.status(400).json({ errorMsg: "Can not find User" });
+            const childhoodInstitution = req.user.childhoodInstitution;
+            let user = await TeamMember.findOneAndUpdate({ _id: req.params.userId, childhoodInstitution, status: { $in: ["animator"] }, isAccepted: true, isVisible: true, isAllowed: true }, { $set: { isVisible: false, isAllowed: false } }, { new: true });
+            if (!user) {
+                user = await Parent.findOneAndUpdate({ _id: req.params.userId, childhoodInstitution, isAccepted: true, isVisible: true, isAllowed: true }, { $set: { isVisible: false, isAllowed: false } }, { new: true });
+                if (!user) return res.status(404).json({ errorMsg: "Can not find User" });
+            }
+            res.json(user);
+        } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
+
+    } catch (err) {
+        console.error("error::", err.message);
+        res.status(500).json({ errorMsg: "Server error has occcured !" });
+    }
+
+});
+
+
+
+// @route   *** PUT /users *** TODO: Done
 // @desc    *** Update parent profile ***
 // @access  *** Private (only for manager) ***
 router.put("/up_parent_profile_by_manager/:childhoodInstitutionId/:parentId", authPrivRoutes, async (req, res) => {
     try {
-        const userToAccess = await TeamMember.findById(req.user.id);
+        const userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
         if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
         // access only for TeamMembers (only manager )
         if (userToAccess.status.includes("manager") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
             if (!checkForHexRegExpFunction(req.params.parentId)) return res.status(400).json({ errorMsg: "Can not find User" });
             const childhoodInstitution = req.user.childhoodInstitution;
-            let parent = await Parent.findOne({ _id: req.params.parentId, childhoodInstitution, isVisible: true, isVerified: true });
+            let parent = await Parent.findOne({ _id: req.params.parentId, childhoodInstitution, isVisible: true, isAccepted: true, isAllowed: true });
             // if a parent is not found 
             if (!parent) return res.status(404).json({ errorMsg: "Can not find User" });
             // else
@@ -148,7 +242,7 @@ router.put("/up_parent_profile_by_manager/:childhoodInstitutionId/:parentId", au
 
 
             parent = await Parent.findOneAndUpdate({ _id: req.params.parentId, childhoodInstitution }, { $set: updateParentFields }, { new: true });
-            return res.json(parent);
+            res.json(parent);
         } else return res.status(403).json({ accessError: "Can not access this data (handling access)" });
 
 
@@ -159,12 +253,184 @@ router.put("/up_parent_profile_by_manager/:childhoodInstitutionId/:parentId", au
 });
 
 
-// @route   *** PUT /users ***
+// @route   *** GET /users *** TODO: Done
+// @desc    *** Get all accepted parents by childhoodInstitution ***
+// @access  *** Private for all TeamMembers ***
+router.get("/all_accepted_parents/:childhoodInstitutionId", authPrivRoutes, async (req, res) => {
+    try {
+        const userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
+        if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
+        // access only for TeamMembers
+        if (userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+            const childhoodInstitution = req.user.childhoodInstitution;
+            const parents = await Parent.find({ childhoodInstitution, isAccepted: true, isVisible: true, isAllowed: true }, "-password -__v");
+            if (parents.length === 0) return res.status(404).json({ errorMsg: "there are no users available at the moment" });
+            res.json(parents);
+        } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
+
+    } catch (err) {
+        console.error("error:: ", err.message);
+        res.status(500).json({ errorMsg: "server Error" });
+    }
+});
+
+
+// @route   *** GET /users *** TODO: Done
+// @desc    *** Get all Not accepted parents yet by childhoodInstitution  *** (default case at registration)
+// @access  *** Private (only for manager)  ***
+router.get("/parents_not_accepted_yet/:childhoodInstitutionId", authPrivRoutes, async (req, res) => {
+    try {
+        const userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
+        if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
+        // access only for TeamMembers (only manager )
+        if (userToAccess.status.includes("manager") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+            const childhoodInstitution = req.user.childhoodInstitution;
+            const parents = await Parent.find({ childhoodInstitution, isVisible: true, isAccepted: false, isAllowed: false }, "-password -__v");
+            if (parents.length === 0) return res.status(404).json({ errorMsg: "there are no unaccepted users yet available at the moment" });
+            res.json(parents);
+        } else return res.status(403).json({ accessError: "Can not access this data (handling access)" });
+
+    } catch (err) {
+        console.error("error:: ", err.message);
+        res.status(500).json({ errorMsg: "server Error" });
+    }
+});
+
+// @route   *** GET /users *** TODO: Done
+// @desc    *** Get one accepted & visible parent by childhoodInstitution ***
+// @access  *** Private for all TeamMembers ***
+router.get("/one_accepted_parent/:childhoodInstitutionId/:parentId", authPrivRoutes, async (req, res) => {
+    try {
+        const userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
+        if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
+        // access only for TeamMembers
+        if (userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+            if (!checkForHexRegExpFunction(req.params.parentId)) return res.status(400).json({ errorMsg: "Can not find User" });
+            const childhoodInstitution = req.user.childhoodInstitution;
+            const parent = await Parent.findOne({ _id: req.params.parentId, childhoodInstitution, isAccepted: true, isVisible: true, isAllowed: true }, "-password -__v");
+            if (!parent) return res.status(404).json({ errorMsg: " Can not find User" });
+            res.json(parent);
+        } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
+
+    } catch (err) {
+        console.error("error:: ", err.message);
+        res.status(500).json({ errorMsg: "server Error" });
+    }
+});
+
+// @route   *** GET /users *** TODO: Done
+// @desc    *** Get one parent not accepted yet by childhoodInstitution *** (default case at registration)
+// @access  *** Private for TeamMembers (only for manager) ***
+router.get("/one_parent_not_accepted_yet/:childhoodInstitutionId/:parentId", authPrivRoutes, async (req, res) => {
+    try {
+        const userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
+        // access only for TeamMembers
+        if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
+        // access only for TeamMembers (only manager )
+        if (userToAccess.status.includes("manager") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+            if (!checkForHexRegExpFunction(req.params.parentId)) return res.status(400).json({ errorMsg: "Can not find User" });
+            const childhoodInstitution = req.user.childhoodInstitution;
+            const parent = await Parent.findOne({ _id: req.params.parentId, childhoodInstitution, isVisible: true, isAccepted: false, isAllowed: false }, "-password -__v");
+            if (!parent) return res.status(404).json({ errorMsg: " Can not find User" });
+            res.json(parent);
+        } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
+
+    } catch (err) {
+        console.error("error:: ", err.message);
+        res.status(500).json({ errorMsg: "server Error" });
+    }
+});
+
+// @route   *** GET /users *** TODO: Done
+// @desc    *** Get all children of accepted & visible parents by childhoodInstitution ***
+// @access  *** Private for all TeamMembers ***
+router.get("/all_children/:childhoodInstitutionId", authPrivRoutes, async (req, res) => {
+    try {
+        const userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
+        if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
+        // access only for TeamMembers
+        if (userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+            const childhoodInstitution = req.user.childhoodInstitution;
+            let parents = await Parent.find({ childhoodInstitution, isAccepted: true, isVisible: true, isAllowed: true }, "children avatar");
+            if (parents.length === 0) return res.status(404).json({ errorMsg: "there are no children to show because there are no verified parents subscribed in this childhood Institution" });
+            parents = parents.map(parent => parent.toJSON());
+
+            // second method:
+            /*
+            for (let i = 0; i < parents.length; i++) {
+                for (let j = 0; j < parents[i].children.length; j++) {
+                    parents[i].children[j] = { ...parents[i].children[j], avatar: parents[i].avatar, parentId: parents[i]._id };
+                }
+            }
+            childrens = parents.map(par => par.children).reduce((acc, cV) => [...acc, ...cV], []);
+            */
+
+
+            // first method
+            const childrens = parents.map(parent => ({
+                ...parent,
+                children: parent.children.map(child => ({
+                    ...child,
+                    avatar: parent.avatar,
+                    parentId: parent._id
+                }))
+            })).map(par => par.children).reduce((acc, cV) => [...acc, ...cV], []);
+
+
+            res.json(childrens);
+        } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
+
+    } catch (err) {
+        console.error("error:: ", err.message);
+        res.status(500).json({ errorMsg: "server Error" });
+    }
+});
+
+// @route   *** GET /users ***      TODO: Done
+// @desc    *** Get all children of One visible parent by childhoodInstitution *** (either accepted or not)
+// @access  *** Private for all TeamMembers ***
+router.get("/all_children/:childhoodInstitutionId/:parentId", authPrivRoutes, async (req, res) => {
+    try {
+        const userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
+        if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
+        // access only for TeamMembers
+        if (userToAccess.status.includes("manager") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+            if (!checkForHexRegExpFunction(req.params.parentId)) return res.status(400).json({ errorMsg: "Can not find this User's children because he's not found." });
+            const childhoodInstitution = req.user.childhoodInstitution;
+            const parent = await Parent.findOne({ _id: req.params.parentId, childhoodInstitution, isVisible: true }, "children");
+            if (!parent) return res.status(404).json({ errorMsg: "Can not find this User's children because he's not found" });
+            res.json(parent);
+
+        } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
+
+    } catch (err) {
+        console.error("error:: ", err.message);
+        res.status(500).json({ errorMsg: "server Error" });
+    }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// @route   *** PUT /users *** TODO: Done
 // @desc    *** Update parent profile ***
 // @access  *** Private (only  the parent himself) ***
 router.put("/up_parent_profile_by_him", authPrivRoutes, async (req, res) => {
     try {
-        let parent = await Parent.findOne({ _id: req.user.id, isVisible: true, isVerified: true });
+        let parent = await Parent.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
         if (!parent) return res.status(404).json({ errorMsg: "Can not update profil because we can not find User with this id" });
         const { error, value } = updateParentProfilValidationByHim(req.body);
         if (error) {
@@ -195,13 +461,22 @@ router.put("/up_parent_profile_by_him", authPrivRoutes, async (req, res) => {
 });
 
 
-// @route   *** PUT /users ***
+// @route   *** PUT /users ***   TODO: Done
 // @desc    *** Update mainPhoneNumber ***
-// @access  *** Private (only  the parent himself) ***
+// @access  *** Private (only the parent or the teamMember himself) ***
 router.put("/phonenumbers/main", authPrivRoutes, async (req, res) => {
     try {
-        const parent = await Parent.findOne({ _id: req.user.id, isVisible: true, isVerified: true });
-        if (!parent) return res.status(404).json({ errorMsg: "Can not find User with this id" });
+        let userType;
+        let user = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
+        if (user) { userType = "TeamMember"; console.log(userType); }
+        if (!user) {
+            user = await Parent.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
+            if (user) { userType = "Parent"; console.log(userType); }
+            if (!user) return res.status(404).json({ errorMsg: "Can not find User with this id." });
+        }
+
+
+
         const { error, value } = updateMainPhoneNumber(req.body);
 
         if (error) {
@@ -216,21 +491,25 @@ router.put("/phonenumbers/main", authPrivRoutes, async (req, res) => {
 
         const mainPhoneNumberExists = await Parent.findOne({ "phoneNumbers.mainPhoneNumber": mainPhoneNumber, _id: { $ne: req.user.id }, childhoodInstitution: req.user.childhoodInstitution });
 
-        if (mainPhoneNumberExists) return res.status(400).json({ errorMsg: "mainPhoneNumber already exists" });
+        if (mainPhoneNumberExists) return res.status(400).json({ errorMsg: "mainPhoneNumber already exists." });
         //Testes le après avoir ajouter des instanciations du modèle TeamMember
 
-        const PhoneNumberTeamMember = await TeamMember.findOne({ phoneNumber: mainPhoneNumber, childhoodInstitution: req.user.childhoodInstitution });
+        const PhoneNumberTeamMember = await TeamMember.findOne({ phoneNumber: mainPhoneNumber, _id: { $ne: req.user.id }, childhoodInstitution: req.user.childhoodInstitution });
 
         if (PhoneNumberTeamMember) return res.status(400).json({ errorMsg: "mainPhoneNumber already exists" });
 
 
-        const me = await Parent.findOne({ _id: req.user.id });
-        if (me && me.phoneNumbers.mainPhoneNumber === mainPhoneNumber) return res.status(400).json({ msg: "Your phone number has not been changed" });
-        if (me && me.phoneNumbers.optionalPhoneNumber === mainPhoneNumber) return res.status(400).json({ msg: `the number entered ${mainPhoneNumber} represents your optional number.` });
+        if (userType == "Parent") {
+            if (user.phoneNumbers.mainPhoneNumber === mainPhoneNumber) return res.status(400).json({ msg: "Your phone number has not been changed" });
+            if (user.phoneNumbers.optionalPhoneNumber === mainPhoneNumber) return res.status(400).json({ msg: `the number entered ${mainPhoneNumber} represents your optional number.` });
+            user = await Parent.findOneAndUpdate({ _id: req.user.id }, { $set: { "phoneNumbers.mainPhoneNumber": mainPhoneNumber } }, { new: true });
+            return res.json(user);
+        }
         // me.phoneNumbers.mainPhoneNumber = mainPhoneNumber;
         // await me.save()  // method of ahmed
-        const newMainPhoneNumber = await Parent.findOneAndUpdate({ _id: req.user.id }, { $set: { "phoneNumbers.mainPhoneNumber": mainPhoneNumber } }, { new: true });
-        res.json(newMainPhoneNumber);
+        if (user.phoneNumber === mainPhoneNumber) return res.status(400).json({ msg: "Your phone number has not been changed" });
+        user = await TeamMember.findOneAndUpdate({ _id: req.user.id }, { $set: { phoneNumber: mainPhoneNumber } }, { new: true });
+        res.json(user);
 
     } catch (err) {
         console.error("error::", err.message);
@@ -245,7 +524,7 @@ router.put("/phonenumbers/main", authPrivRoutes, async (req, res) => {
 // @access  *** Private (only the parent himself) ***
 router.put("/phonenumbers/optional", authPrivRoutes, async (req, res) => {
     try {
-        const parent = await Parent.findOne({ _id: req.user.id, isVisible: true, isVerified: true });
+        const parent = await Parent.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
         if (!parent) return res.status(404).json({ errorMsg: "Can not find User with this id" });
         const { error, value } = updateOptionalPhoneNumber(req.body);
 
@@ -293,7 +572,7 @@ router.put("/phonenumbers/optional", authPrivRoutes, async (req, res) => {
 // @access  *** Private (only the parent himself)***
 router.put("/phonenumbers/deleteoptional", authPrivRoutes, async (req, res) => {
     try {
-        const newOptionalPhoneNumber = await Parent.findOneAndUpdate({ _id: req.user.id, isVisible: true, isVerified: true }, { $set: { "phoneNumbers.optionalPhoneNumber": "" } }, { new: true });
+        const newOptionalPhoneNumber = await Parent.findOneAndUpdate({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true }, { $set: { "phoneNumbers.optionalPhoneNumber": "" } }, { new: true });
         if (!newOptionalPhoneNumber) return res.status(404).json({ errorMsg: "Can not find User with this id" });
         res.json(newOptionalPhoneNumber);
 
@@ -309,7 +588,7 @@ router.put("/phonenumbers/deleteoptional", authPrivRoutes, async (req, res) => {
 // @access  *** Private (only the parent himself)***
 router.put("/phonenumbers/exchange", authPrivRoutes, async (req, res) => {
     try {
-        const me = await Parent.findOne({ _id: req.user.id, isVisible: true, isVerified: true });
+        const me = await Parent.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
         if (!me) return res.status(404).json({ errorMsg: "Can not find this user" });
         const { mainPhoneNumber, optionalPhoneNumber } = me.phoneNumbers;
         if (optionalPhoneNumber === "") return res.status(400).json({ errorMsg: "we cannot put the main number empty" });
@@ -336,11 +615,14 @@ router.put("/phonenumbers/exchange", authPrivRoutes, async (req, res) => {
 
 // @route   *** PUT /users ***
 // @desc    *** mofidy password ***
-// @access  *** Private (only the parent himself) ***
+// @access  *** Private (only the parent or the teamMember himself) ***
 router.put("/modify_password", authPrivRoutes, async (req, res) => {
     try {
-        const parent = await Parent.findOne({ _id: req.user.id, isVisible: true, isVerified: true });
-        if (!parent) return res.status(404).json({ errorMsg: "Can not find User with this id" });
+        let user = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
+        if (!user) {
+            user = await Parent.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
+            if (!user) return res.status(404).json({ errorMsg: "Can not find User with this id" });
+        }
         const { error, value } = updatePasswordValidation(req.body);
 
         if (error) {
@@ -352,7 +634,7 @@ router.put("/modify_password", authPrivRoutes, async (req, res) => {
 
         const { currentPassword, newPassword } = req.body;
         // checking if the password entered and the user password saved in the databse are equal
-        const isMatch = await bcrypt.compare(currentPassword, parent.password);
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
         if (!isMatch) return res.status(401).json({ errorMsg: "Invalid current password" });
 
 
@@ -361,59 +643,10 @@ router.put("/modify_password", authPrivRoutes, async (req, res) => {
         // before saving our newPassword in the db, we must encrypt it (using bcrypt) -> (we shouldn't store password in database in plain text)
         const salt = await bcrypt.genSalt(10);
         const newPassEncrypted = await bcrypt.hash(newPassword, salt);
-
-        const userAfterChangingPassword = await Parent.findOneAndUpdate({ _id: req.user.id }, { $set: { password: newPassEncrypted } }, { new: true });
-        res.json(userAfterChangingPassword);
-
-    } catch (err) {
-        console.error("error::", err.message);
-        res.status(500).json({ errorMsg: "Server error has occcured !" });
-    }
-
-});
-
-
-// @route   *** PUT /users ***
-// @desc    *** update isVerified field to true ***
-// @access  *** Private (only for manager)***
-router.put("/update_isverified_field/:childhoodInstitutionId/:parentId", authPrivRoutes, async (req, res) => {
-
-    try {
-        const userToAccess = await TeamMember.findById(req.user.id);
-        if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
-        // access only for TeamMembers (only manager )
-        if (userToAccess.status.includes("manager") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
-            if (!checkForHexRegExpFunction(req.params.parentId)) return res.status(400).json({ errorMsg: "Can not find User" });
-            const childhoodInstitution = req.user.childhoodInstitution;
-            const parent = await Parent.findOneAndUpdate({ _id: req.params.parentId, childhoodInstitution, isVisible: true, isVerified: false }, { $set: { isVerified: true } }, { new: true });
-            if (!parent) return res.status(404).json({ errorMsg: "Can not find User" });
-
-            res.json(parent);
-        } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
-
-    } catch (err) {
-        console.error("error::", err.message);
-        res.status(500).json({ errorMsg: "Server error has occcured !" });
-    }
-
-});
-
-// @route   *** PUT /users ***
-// @desc    *** update isVisible field to false ***
-// @access  *** Private (only for manager)***
-router.put("/update_isvisible_field/:childhoodInstitutionId/:parentId", authPrivRoutes, async (req, res) => {
-
-    try {
-        const userToAccess = await TeamMember.findById(req.user.id);
-        if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
-        // access only for TeamMembers (only manager )
-        if (userToAccess.status.includes("manager") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
-            if (!checkForHexRegExpFunction(req.params.parentId)) return res.status(400).json({ errorMsg: "Can not find User" });
-            const childhoodInstitution = req.user.childhoodInstitution;
-            const parent = await Parent.findOneAndUpdate({ _id: req.params.parentId, childhoodInstitution, isVisible: true }, { $set: { isVisible: false } }, { new: true });
-            if (!parent) return res.status(404).json({ errorMsg: "Can not find User" });
-            res.json(parent);
-        } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
+        user = await TeamMember.findById(req.user.id);
+        if (!user) user = await Parent.findOneAndUpdate({ _id: req.user.id }, { $set: { password: newPassEncrypted } }, { new: true });
+        user = await TeamMember.findOneAndUpdate({ _id: req.user.id }, { $set: { password: newPassEncrypted } }, { new: true });
+        res.json(user);
 
     } catch (err) {
         console.error("error::", err.message);
@@ -423,139 +656,6 @@ router.put("/update_isvisible_field/:childhoodInstitutionId/:parentId", authPriv
 });
 
 
-// @route   *** GET /users ***
-// @desc    *** Get all verified parents by childhoodInstitution ***
-// @access  *** Private for all TeamMembers ***
-router.get("/all_verified_parents/:childhoodInstitutionId", authPrivRoutes, async (req, res) => {
-    try {
-        const userToAccess = await TeamMember.findById(req.user.id);
-        if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
-        // access only for TeamMembers
-        if (userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
-            const childhoodInstitution = req.user.childhoodInstitution;
-            const parents = await Parent.find({ childhoodInstitution, isVerified: true, isVisible: true }, "-password -__v");
-            if (parents.length === 0) return res.status(404).json({ errorMsg: "there are no users available at the moment" });
-            res.json(parents);
-        } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
-
-    } catch (err) {
-        console.error("error:: ", err.message);
-        res.status(500).json({ errorMsg: "server Error" });
-    }
-});
-
-
-// @route   *** GET /users ***
-// @desc    *** Get all Not Verified parents yet by childhoodInstitution  ***
-// @access  *** Private (only for manager)  ***
-router.get("/parents_notverified_yet/:childhoodInstitutionId", authPrivRoutes, async (req, res) => {
-    try {
-        const userToAccess = await TeamMember.findById(req.user.id);
-        if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
-        // access only for TeamMembers (only manager )
-        if (userToAccess.status.includes("manager") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
-            const childhoodInstitution = req.user.childhoodInstitution;
-            const parents = await Parent.find({ childhoodInstitution, isVerified: false, isVisible: true }, "-password -__v");
-            if (parents.length === 0) return res.status(404).json({ errorMsg: "there are no unverified users available at the moment" });
-            // console.log(parents);
-            res.json(parents);
-        } else return res.status(403).json({ accessError: "Can not access this data (handling access)" });
-
-    } catch (err) {
-        console.error("error:: ", err.message);
-        res.status(500).json({ errorMsg: "server Error" });
-    }
-});
-
-// @route   *** GET /users ***
-// @desc    *** Get one verified & visible parent by childhoodInstitution ***
-// @access  *** Private for all TeamMembers ***
-router.get("/one_verified_parent/:childhoodInstitutionId/:parentId", authPrivRoutes, async (req, res) => {
-    try {
-        const userToAccess = await TeamMember.findById(req.user.id);
-        if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
-        // access only for TeamMembers
-        if (userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
-            if (!checkForHexRegExpFunction(req.params.parentId)) return res.status(400).json({ errorMsg: "Can not find User" });
-            const childhoodInstitution = req.user.childhoodInstitution;
-            const parent = await Parent.findOne({ _id: req.params.parentId, childhoodInstitution, isVerified: true, isVisible: true }, "-password -__v");
-            if (!parent) return res.status(404).json({ errorMsg: " Can not find User" });
-            res.json(parent);
-        } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
-
-    } catch (err) {
-        console.error("error:: ", err.message);
-        res.status(500).json({ errorMsg: "server Error" });
-    }
-});
-
-// @route   *** GET /users ***
-// @desc    *** Get one parent not verified yet by childhoodInstitution ***
-// @access  *** Private for TeamMembers (only for manager) ***
-router.get("/one_parent_not_verified_yet/:childhoodInstitutionId/:parentId", authPrivRoutes, async (req, res) => {
-    try {
-        const userToAccess = await TeamMember.findById(req.user.id);
-        // access only for TeamMembers
-        if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
-        // access only for TeamMembers (only manager )
-        if (userToAccess.status.includes("manager") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
-            if (!checkForHexRegExpFunction(req.params.parentId)) return res.status(400).json({ errorMsg: "Can not find User" });
-            const childhoodInstitution = req.user.childhoodInstitution;
-            const parent = await Parent.findOne({ _id: req.params.parentId, childhoodInstitution, isVerified: false, isVisible: true }, "-password -__v");
-            if (!parent) return res.status(404).json({ errorMsg: " Can not find User" });
-            res.json(parent);
-        } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
-
-    } catch (err) {
-        console.error("error:: ", err.message);
-        res.status(500).json({ errorMsg: "server Error" });
-    }
-});
-
-// @route   *** GET /users ***
-// @desc    *** Get all children of verified parents by childhoodInstitution ***
-// @access  *** Private for all TeamMembers ***
-router.get("/all_children/:childhoodInstitutionId", authPrivRoutes, async (req, res) => {
-    try {
-        const userToAccess = await TeamMember.findById(req.user.id);
-        if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
-        // access only for TeamMembers
-        if (userToAccess.status.includes("manager") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
-            const childhoodInstitution = req.user.childhoodInstitution;
-            let parents = await Parent.find({ childhoodInstitution, isVerified: true, isVisible: true }, "children avatar");
-            if (parents.length === 0) return res.status(404).json({ errorMsg: "there are no children to show because there are no verified parents subscribed in this childhood Institution" });
-            parents = parents.map(parent => parent.toJSON());
-
-            // second method:
-            /*
-            for (let i = 0; i < parents.length; i++) {
-                for (let j = 0; j < parents[i].children.length; j++) {
-                    parents[i].children[j] = { ...parents[i].children[j], avatar: parents[i].avatar, parentId: parents[i]._id };
-                }
-            }
-            childrens = parents.map(par => par.children).reduce((acc, cV) => [...acc, ...cV], []);
-            */
-
-
-            // first method
-            const childrens = parents.map(parent => ({
-                ...parent,
-                children: parent.children.map(child => ({
-                    ...child,
-                    avatar: parent.avatar,
-                    parentId: parent._id
-                }))
-            })).map(par => par.children).reduce((acc, cV) => [...acc, ...cV], []);
-
-
-            res.json(childrens);
-        } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
-
-    } catch (err) {
-        console.error("error:: ", err.message);
-        res.status(500).json({ errorMsg: "server Error" });
-    }
-});
 
 
 

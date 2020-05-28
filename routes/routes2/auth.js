@@ -51,9 +51,6 @@ router.post("/", async (req, res) => {
         if (!user) {
             user = await Parent.findOne({ "phoneNumbers.mainPhoneNumber": phoneNum, childhoodInstitution: childhoodInstitution });
             if (!user) return res.status(400).json({ alert: "Phone number or Password is wrong" }); // userNotFound: 'User not found'
-
-            if (!user.isVisible && !user.isVerified) return res.status(400).json({ errorMsg: "For security reasons, your account has not been approved by the administration of the institution. thanks for your understanding." }); // Pour des raisons de sécurité, votre compte n'a pas été approuvé par l'administration de l'institution. Merci pour votre compréhension.
-            if (!user.isVisible && user.isVerified) return res.status(400).json({ errorMsg: "Your account has been deleted by the administration of the institution. Thanks for your understanding." }); // Votre compte a été supprimé par l'administration de l'institution. Merci pour votre compréhension.
         }
         user = user.toJSON(); // AHMED ADDED IT TO GET USER OBJECT WITHOUT ANY ERROR
 
@@ -61,10 +58,15 @@ router.post("/", async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(401).json({ alert: "Phone number or Password is wrong" }); // invalidPassword: 'Invalid Password'
 
+        if (user.isVisible && !user.isAccepted && !user.isAllowed) return res.status(403).json({ errorMsg: "your account has not been approved yet. It is under review. You will receive a confirmation message on your phone number: .... to be able to access it." }); // Votre compte n'a pas été encore approuvé. Il est en cours d'examination. Vous recevrez un message de confirmation sur votre numéro de téléphone: .... pour pouvoir y accéder.
+        if (!user.isVisible && !user.isAccepted && !user.isAllowed) return res.status(400).json({ errorMsg: "For security reasons, your account has not been approved by the administration of the institution. thanks for your understanding." }); // Pour des raisons de sécurité, votre compte n'a pas été approuvé par l'administration de l'institution. Merci pour votre compréhension.
+        if (!user.isVisible && user.isAccepted && !user.isAllowed) return res.status(400).json({ errorMsg: "Your account has been deleted by the administration of the institution. Thanks for your understanding." }); // Votre compte a été supprimé par l'administration de l'institution. Merci pour votre compréhension.
+
+
         // Return (sending back) jsonwebtoken to the front-end
         const payload = {
             user: {
-                id: user.id,
+                id: user._id,
                 childhoodInstitution: user.childhoodInstitution
             }
         };
@@ -89,3 +91,8 @@ router.post("/", async (req, res) => {
 });
 
 module.exports = router;
+
+
+
+
+

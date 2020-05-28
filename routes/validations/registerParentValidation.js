@@ -115,11 +115,11 @@ const registerParentValidation = (reqBody) => {
                 "any.required": "\"gender\" is a required field"
             })
         })),
-        childhoodInstitution: Joi.string().empty().required().messages({
-            "string.base": "\"accountName\" should be a type of 'text'",
-            "string.empty": "Ce champ doit être rempli !",
-            "any.required": "\"accountName\" is a required field"
-        }),
+        // childhoodInstitution: Joi.string().empty().required().messages({
+        //     "string.base": "\"accountName\" should be a type of 'text'",
+        //     "string.empty": "Ce champ doit être rempli !",
+        //     "any.required": "\"accountName\" is a required field"
+        // }),
         password: Joi.string().min(6).max(30).empty().required().messages({
             "string.base": "\"accountName\" should be a type of 'text'",
             "string.empty": "Ce champ doit être rempli !",

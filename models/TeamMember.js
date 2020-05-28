@@ -37,6 +37,18 @@ const TeamMemberSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    isAccepted: {
+        type: Boolean,
+        default: false
+    },
+    isVisible: {
+        type: Boolean,
+        default: true
+    },
+    isAllowed: {
+        type: Boolean,
+        default: false
+    },
     avatar: {
         type: String,
         default: "https://lh4.googleusercontent.com/proxy/Ep36GcwuLJ3MMM4bFTWf0rzoOu7jmPUEtkR2wGGRUQkNAI1X52JJd3OTXsnNktJIjaZtZV_QN-4pwYi1qANfSLkeS_YteDI",
