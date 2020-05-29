@@ -58,6 +58,10 @@ const PostSchema = new mongoose.Schema({
             }
         }
     ],
+    isVisible: {
+        type: Boolean,
+        default: true
+    },
     date: {
         type: Date,
         default: Date.now
