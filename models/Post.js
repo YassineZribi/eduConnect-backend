@@ -44,33 +44,6 @@ const PostSchema = new mongoose.Schema({
             }
         }
     ],
-    comments: [
-        {
-            user: {
-                type: mongoose.Schema.Types.ObjectId,
-                refPath: "onModel"
-            },
-            onModel: {
-                type: String,
-                required: true,
-                enum: ["Parent", "TeamMember"]
-            },
-            text: {
-                type: String,
-                required: true
-            },
-            name: {
-                type: String
-            },
-            avatar: {
-                type: String
-            },
-            date: {
-                type: Date,
-                default: Date.now
-            }
-        }
-    ],
     date: {
         type: Date,
         default: Date.now

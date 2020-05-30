@@ -217,7 +217,7 @@ router.get("/onebill/:childhoodInstitutionId/:parentId/:billId", authPrivRoutes,
             userToAccess = await Parent.findOne({ _id: req.user.id, isVisible: true, isAccepted: true });
             if ((!userToAccess) || (userToAccess._id != req.params.parentId)) return res.status(403).json({ accessError: "Can not access this data" });
         }
-        if (userToAccess.status && (userToAccess.status.length === 1 && userToAccess.status.includes("animator"))) return res.status(403).json({ accessError: "Can not access this data" });
+        if (userToAccess.status.length === 1 && userToAccess.status.includes("animator")) return res.status(403).json({ accessError: "Can not access this data" });
         // access only for TeamMembers (only for manager)
         if (userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
             if (!checkForHexRegExpFunction(req.params.billId) || !checkForHexRegExpFunction(req.params.parentId)) return res.status(400).json({ errorMsg: "Can not find the appropriate Bill" });
