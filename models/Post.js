@@ -31,6 +31,19 @@ const PostSchema = new mongoose.Schema({
             }
         }
     ],
+    dislikes: [
+        {
+            user: {
+                type: mongoose.Schema.Types.ObjectId,
+                refPath: "onModel"
+            },
+            onModel: {
+                type: String,
+                required: true,
+                enum: ["Parent", "TeamMember"]
+            }
+        }
+    ],
     comments: [
         {
             user: {
@@ -58,10 +71,6 @@ const PostSchema = new mongoose.Schema({
             }
         }
     ],
-    isVisible: {
-        type: Boolean,
-        default: true
-    },
     date: {
         type: Date,
         default: Date.now
