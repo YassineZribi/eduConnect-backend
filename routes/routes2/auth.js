@@ -34,7 +34,7 @@ router.get("/test2", authPrivRoutes, async (req, res) => {
 // @route   *** POST /auth ***
 // @desc    *** Authenticate parent or teamMember & get token ***
 // @access  *** Public ***
-router.post("/", async (req, res) => {
+router.post("/:childhoodInstitutionId", async (req, res) => {
     // Validate the data before authenticate the user (using @hapi/joi)
     const { error, value } = loginValidation(req.body);
 
@@ -46,21 +46,21 @@ router.post("/", async (req, res) => {
     }
     try {
         // After validation => Checking if the user is already exist or not in the databse by checking his email
-        const { phoneNum, password, childhoodInstitution } = req.body;
-        let user = await TeamMember.findOne({ phoneNumber: phoneNum, childhoodInstitution: childhoodInstitution });
+        const { phoneNum, password } = req.body;
+        let user = await TeamMember.findOne({ phoneNumber: phoneNum, childhoodInstitution: req.params.childhoodInstitutionId });
         if (!user) {
-            user = await Parent.findOne({ "phoneNumbers.mainPhoneNumber": phoneNum, childhoodInstitution: childhoodInstitution });
-            if (!user) return res.status(400).json({ alert: "Phone number or Password is wrong" }); // userNotFound: 'User not found'
+            user = await Parent.findOne({ "phoneNumbers.mainPhoneNumber": phoneNum, childhoodInstitution: req.params.childhoodInstitutionId });
+            if (!user) return res.status(400).json({ errorCode: "01", title: "INCOREECTE !", alert: "Le numéro de téléphone ou le mot de passe est incorrect", alertType: "warning" }); // userNotFound: 'User not found' // Phone number or Password is wrong
         }
         user = user.toJSON(); // AHMED ADDED IT TO GET USER OBJECT WITHOUT ANY ERROR
 
         // checking if the password entered and the user password saved in the databse are equal
         const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return res.status(401).json({ alert: "Phone number or Password is wrong" }); // invalidPassword: 'Invalid Password'
+        if (!isMatch) return res.status(400).json({ errorCode: "01", title: "INCOREECTE !", alert: "Le numéro de téléphone ou le mot de passe est incorrect", alertType: "warning" }); // invalidPassword: 'Invalid Password'
 
-        if (user.isVisible && !user.isAccepted && !user.isAllowed) return res.status(403).json({ errorMsg: "your account has not been approved yet. It is under review. You will receive a confirmation message on your phone number: .... to be able to access it." }); // Votre compte n'a pas été encore approuvé. Il est en cours d'examination. Vous recevrez un message de confirmation sur votre numéro de téléphone: .... pour pouvoir y accéder.
-        if (!user.isVisible && !user.isAccepted && !user.isAllowed) return res.status(400).json({ errorMsg: "For security reasons, your account has not been approved by the administration of the institution. thanks for your understanding." }); // Pour des raisons de sécurité, votre compte n'a pas été approuvé par l'administration de l'institution. Merci pour votre compréhension.
-        if (!user.isVisible && user.isAccepted && !user.isAllowed) return res.status(400).json({ errorMsg: "Your account has been deleted by the administration of the institution. Thanks for your understanding." }); // Votre compte a été supprimé par l'administration de l'institution. Merci pour votre compréhension.
+        if (user.isVisible && !user.isAccepted && !user.isAllowed) return res.status(401).json({ title: "EN ATTENTE !", alert: "Votre compte n'a pas été encore approuvé. Il est en cours d'examination. Vous recevrez un message de confirmation sur votre numéro de téléphone:" + phoneNum + " pour pouvoir y accéder.", alertType: "info" });
+        if (!user.isVisible && !user.isAccepted && !user.isAllowed) return res.status(403).json({ title: "NON APPROUVÉ !", alert: "Pour des raisons de sécurité, votre compte n'a pas été approuvé par l'administration de l'institution. Merci pour votre compréhension.", alertType: "error" });
+        if (!user.isVisible && user.isAccepted && !user.isAllowed) return res.status(403).json({ title: "SUPPRIMÉ !", alert: "Votre compte a été supprimé par l'administration de l'institution. Merci pour votre compréhension.", alertType: "error" });
 
 
         // Return (sending back) jsonwebtoken to the front-end

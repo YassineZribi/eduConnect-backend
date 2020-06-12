@@ -32,7 +32,7 @@ const ChildhoodInstitutionSchema = mongoose.Schema({
     },
     category: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Category",      //    Nursery   Kindergarten   ChildrenClub   NurserySchool
+        ref: "Category",      //    nursery   kindergarten   children_club   nursery_school
         required: true
     },
     foundationEmitter: {

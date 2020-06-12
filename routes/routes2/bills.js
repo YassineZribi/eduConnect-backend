@@ -295,7 +295,7 @@ router.get('/', async (req, res) => {
 // @access  *** Public ***
 router.get('/bycategory', async (req, res) => {
     try {
-        const childhoodInstitution = await (await ChildhoodInstitution.find().populate('category')).filter(item => item.category.categoryName === 'Kindergarten'); // 
+        const childhoodInstitution = await (await ChildhoodInstitution.find().populate('category')).filter(item => item.category.categoryName === 'kindergarten'); // 
         if (childhoodInstitution.length === 0) return res.status(404).json({ errorMsg: "childhood institution NOT FOUND" });
         res.json(childhoodInstitution);
     } catch (err) {

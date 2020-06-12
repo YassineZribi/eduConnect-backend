@@ -71,7 +71,7 @@ router.post("/", async (req, res) => {
         await teamMember.save();
 
         // if (teamMember.isVisible && !teamMember.isAccepted && !teamMember.isAllowed) : (default case at registration)
-        return res.status(403).json({ alertMsg: "Your account has been successfully created. For security reasons and to protect our Children, all newly created accounts must be examined before having access. You will receive a confirmation message on your telephone number: ... Thank you for your understanding." }); // Votre compte a été créé avec succés. Pour des raisons de sécurité et pour protéger nos Enfants , tous les comptes nouvellement créés doivent être examiner avant d'avoir l'accées.  Vous receverez un message de confirmation sur votre numéro de téléphone: ... Merci pour votre compréhension.
+        return res.json({ alertMsg: "Your account has been successfully created. For security reasons and to protect our Children, all newly created accounts must be examined before having access. You will receive a confirmation message on your telephone number: ... Thank you for your understanding." }); // Votre compte a été créé avec succés. Pour des raisons de sécurité et pour protéger nos Enfants , tous les comptes nouvellement créés doivent être examiner avant d'avoir l'accées.  Vous receverez un message de confirmation sur votre numéro de téléphone: ... Merci pour votre compréhension.
 
 
 

@@ -112,7 +112,7 @@ const updateParentProfilValidationByHim = (reqBody) => {
 
 const updateMainPhoneNumber = (reqBody) => {
     const schema = Joi.object({
-        mainPhoneNumber: Joi.string().pattern(new RegExp("^[0-9]*$")).length(8).empty().required().messages({
+        mainPhoneNumber: Joi.string().pattern(new RegExp("^(\\+216)[0-9]{8}$")).length(12).empty().required().messages({
             "string.base": "\"phoneNumber\" should be a type of 'text'",
             "string.pattern": "\"phoneNumber\" must contain only numbers",
             "string.length": "\"phoneNumber\" must have exactly 8 numbers",
@@ -127,7 +127,7 @@ const updateMainPhoneNumber = (reqBody) => {
 
 const updateOptionalPhoneNumber = (reqBody) => {
     const schema = Joi.object({
-        optionalPhoneNumber: Joi.string().pattern(new RegExp("^[0-9]*$")).length(8).allow("").required().messages({
+        optionalPhoneNumber: Joi.string().pattern(new RegExp("^(\\+216)[0-9]{8}$")).length(12).allow("").required().messages({
             "string.base": "\"phoneNumber\" should be a type of 'text'",
             "string.pattern": "\"phoneNumber\" must contain only numbers",
             "string.length": "\"phoneNumber\" must have exactly 8 numbers",

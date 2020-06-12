@@ -36,7 +36,7 @@ const updateTeamMemberProfileValidation = (reqBody) => {
 
 const updatephoneNumberValidation = (reqBody) => {
     const schema = Joi.object({
-        phoneNumber: Joi.string().pattern(new RegExp("^[0-9]*$")).length(8).empty().required().messages({
+        phoneNumber: Joi.string().pattern(new RegExp("^(\\+216)[0-9]{8}$")).length(12).empty().required().messages({
             "string.base": "\"phoneNumber\" should be a type of 'text'",
             "string.pattern": "\"phoneNumber\" must contain only numbers",
             "string.length": "\"phoneNumber\" must have exactly 8 numbers",

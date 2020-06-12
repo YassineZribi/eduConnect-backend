@@ -3,6 +3,8 @@ const app = express();
 const mongoose = require("mongoose");
 require("dotenv").config();
 const ChilhoodInstitution = require("./models/ChildhoodInstitution");
+const cors = require("cors");
+app.use(cors());
 require("./cron/index");
 
 // new ChilhoodInstitution({

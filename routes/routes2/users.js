@@ -31,12 +31,15 @@ router.post("/create_parent/:childhoodInstitutionId", async (req, res) => {
     if (error) {
         // console.log("error ", error);
         // console.log('error:: ', JSON.stringify(error, null, 2));
-        console.log(JSON.stringify(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}), null, 2));
-        return res.status(400).json(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}));
+        // console.log('error.details: ', error.details);
+        console.log(JSON.stringify(error.details.map(obj => ({ [obj.context.label]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}), null, 2));
+        return res.status(400).json(error.details.map(obj => ({ [obj.context.label]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}));
     }
     try {
         // After validation => Checking if the user is already exist or not in the databse by checking his mainPhoneNumber
         const { phoneNumbers } = req.body;
+
+        if (phoneNumbers.mainPhoneNumber === phoneNumbers.optionalPhoneNumber) return res.status(400).json({ errorMsg: "Phone numbers should not be similar" });
         const parentExists = await Parent.findOne({ "phoneNumbers.mainPhoneNumber": phoneNumbers.mainPhoneNumber, childhoodInstitution: req.params.childhoodInstitutionId });
         if (parentExists) return res.status(400).json({ errorMsg: "User already exists" });
 
@@ -79,7 +82,7 @@ router.post("/create_parent/:childhoodInstitutionId", async (req, res) => {
         await parent.save();
 
         // if (parent.isVisible && !parent.isAccepted && !parent.isAllowed) : (default case at registration)
-        return res.status(403).json({ alertMsg: "Your account has been successfully created. For security reasons and to protect our Children, all newly created accounts must be examined before having access. You will receive a confirmation message on your telephone number: ... Thank you for your understanding." }); // Votre compte a été créé avec succés. Pour des raisons de sécurité et pour protéger nos Enfants , tous les comptes nouvellement créés doivent être examiner avant d'avoir l'accées.  Vous receverez un message de confirmation sur votre numéro de téléphone: ... Merci pour votre compréhension.
+        return res.json({ alertMsg: "Your account has been successfully created. For security reasons and to protect our Children, all newly created accounts must be examined before having access. You will receive a confirmation message on your telephone number: ... Thank you for your understanding." }); // Votre compte a été créé avec succés. Pour des raisons de sécurité et pour protéger nos Enfants , tous les comptes nouvellement créés doivent être examiner avant d'avoir l'accées.  Vous receverez un message de confirmation sur votre numéro de téléphone: ... Merci pour votre compréhension.
 
 
 

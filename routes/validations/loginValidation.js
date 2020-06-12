@@ -2,7 +2,7 @@ const Joi = require("@hapi/joi");
 // make schema for Validation before save data in database:
 const loginValidation = (reqBody) => {
     const schema = Joi.object({
-        phoneNum: Joi.string().pattern(new RegExp("^[0-9]*$")).length(8).empty().required().messages({
+        phoneNum: Joi.string().pattern(new RegExp("^(\\+216)[0-9]{8}$")).length(12).empty().required().messages({
             "string.base": "\"phoneNumber\" should be a type of 'text'",
             "string.pattern": "\"phoneNumber\" must contain only numbers",
             "string.length": "\"phoneNumber\" must have exactly 8 numbers",

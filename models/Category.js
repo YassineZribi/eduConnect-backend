@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const CategorySchema = mongoose.Schema({
-    categoryName: {      //    Nursery   Kindergarten   ChildrenClub   NurserySchool
+    categoryName: {      //    nursery   kindergarten   children_club   nursery_school
         type: String,
         required: true
     },

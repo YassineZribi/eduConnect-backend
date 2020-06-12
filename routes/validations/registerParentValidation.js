@@ -58,14 +58,14 @@ const registerParentValidation = (reqBody) => {
         // puisque il va etre construit après cette vérification
 
         phoneNumbers: Joi.object({
-            mainPhoneNumber: Joi.string().pattern(new RegExp("^[0-9]*$")).length(8).empty().required().messages({
-                "string.base": "\"phoneNumber\" should be a type of 'text'",
+            mainPhoneNumber: Joi.string().pattern(new RegExp("^(\\+216)[0-9]{8}$")).length(12).empty().required().messages({  // new RegExp("^[0-9]*$")
+                "string.base": "\"phoneNumber\" should be a type of 'text'", // new RegExp("^(\\+216)[0-9]{8}$")
                 "string.pattern": "\"phoneNumber\" must contain only numbers",
                 "string.length": "\"phoneNumber\" must have exactly 8 numbers",
                 "string.empty": "Ce champ doit être rempli !",
                 "any.required": "\"phoneNumber\" is a required field"
             }),
-            optionalPhoneNumber: Joi.string().pattern(new RegExp("^[0-9]*$")).length(8).allow("").required().messages({
+            optionalPhoneNumber: Joi.string().pattern(new RegExp("^(\\+216)[0-9]{8}$")).length(12).allow("").required().messages({
                 // can be empty
                 "string.base": "\"phoneNumber\" should be a type of 'text'",
                 "string.pattern": "\"phoneNumber\" must contain only numbers",
