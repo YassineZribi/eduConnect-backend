@@ -18,16 +18,20 @@ router.get("/test1", (req, res) => {
 
 // @route   *** GET /auth ***
 // @desc    *** Test route 2 ***
-// @access  *** Private ***
-router.get("/test2", authPrivRoutes, async (req, res) => {
+// @access  *** Private *** we want to hit this route all the time to make sure or to see if we're logged in or not and also to get the user data 
+router.get("/load_user", authPrivRoutes, async (req, res) => {
     // res.send('Access Private route ');
     // res.json(req.user);
     try {
-        const parent = await Parent.findById(req.user.id, "-password -__v");
-        res.json(parent);
+        let user = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true }, "-password -__v");
+        if (!user) {
+            user = await Parent.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true }, "-password -__v");
+            if (!user) return res.status(404).json({ error: "user NOT FOUND" });
+        }
+        res.json(user);
     } catch (err) { // if something goes wrong
         console.error("error:: ", err.message);
-        res.status(404).json({ error: "user NOT FOUND" });
+        res.status(500).json({ error: "Server Error" });
     }
 });
 

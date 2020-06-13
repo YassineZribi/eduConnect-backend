@@ -65,7 +65,7 @@ const registerParentValidation = (reqBody) => {
                 "string.empty": "Ce champ doit être rempli !",
                 "any.required": "\"phoneNumber\" is a required field"
             }),
-            optionalPhoneNumber: Joi.string().pattern(new RegExp("^(\\+216)[0-9]{8}$")).length(12).allow("").required().messages({
+            optionalPhoneNumber: Joi.string().pattern(new RegExp("^(\\+216)[0-9]{8}$")).length(12).allow("+216").allow("").required().messages({
                 // can be empty
                 "string.base": "\"phoneNumber\" should be a type of 'text'",
                 "string.pattern": "\"phoneNumber\" must contain only numbers",

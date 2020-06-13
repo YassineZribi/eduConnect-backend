@@ -39,12 +39,15 @@ router.post("/create_parent/:childhoodInstitutionId", async (req, res) => {
         // After validation => Checking if the user is already exist or not in the databse by checking his mainPhoneNumber
         const { phoneNumbers } = req.body;
 
-        if (phoneNumbers.mainPhoneNumber === phoneNumbers.optionalPhoneNumber) return res.status(400).json({ errorMsg: "Phone numbers should not be similar" });
-        const parentExists = await Parent.findOne({ "phoneNumbers.mainPhoneNumber": phoneNumbers.mainPhoneNumber, childhoodInstitution: req.params.childhoodInstitutionId });
-        if (parentExists) return res.status(400).json({ errorMsg: "User already exists" });
+        if (phoneNumbers.mainPhoneNumber === phoneNumbers.optionalPhoneNumber) return res.status(400).json({ errorCode: "01", title: "IMPORTANT !", alert: "Phone numbers should not be similar", alertType: "warning" });
 
         const teamMemberExists = await TeamMember.findOne({ phoneNumber: phoneNumbers.mainPhoneNumber, childhoodInstitution: req.params.childhoodInstitutionId });
-        if (teamMemberExists) return res.status(400).json({ errorMsg: "User already exists" });
+        if (teamMemberExists) return res.status(400).json({ errorCode: "01", title: "IMPORTANT !", alert: "User already exists", alertType: "error" });
+
+        const parentExists = await Parent.findOne({ "phoneNumbers.mainPhoneNumber": phoneNumbers.mainPhoneNumber, childhoodInstitution: req.params.childhoodInstitutionId });
+        if (parentExists) return res.status(400).json({ errorCode: "01", title: "IMPORTANT !", alert: "User already exists", alertType: "error" });
+
+
 
         const { father, mother, location, governorate, children, password } = req.body;
 
@@ -82,7 +85,7 @@ router.post("/create_parent/:childhoodInstitutionId", async (req, res) => {
         await parent.save();
 
         // if (parent.isVisible && !parent.isAccepted && !parent.isAllowed) : (default case at registration)
-        return res.json({ alertMsg: "Your account has been successfully created. For security reasons and to protect our Children, all newly created accounts must be examined before having access. You will receive a confirmation message on your telephone number: ... Thank you for your understanding." }); // Votre compte a été créé avec succés. Pour des raisons de sécurité et pour protéger nos Enfants , tous les comptes nouvellement créés doivent être examiner avant d'avoir l'accées.  Vous receverez un message de confirmation sur votre numéro de téléphone: ... Merci pour votre compréhension.
+        return res.json({ title: "Votre compte a été créé avec Succés", alert: "Pour des raisons de sécurité et pour protéger nos Enfants , tous les comptes nouvellement créés doivent être examiner avant d'avoir l'accès.  Vous receverez un message de confirmation sur votre numéro de téléphone:" + parent.phoneNumbers.mainPhoneNumber + "pour pouvoir y accéder. Merci pour votre compréhension.", alertType: "success" });
 
 
 
