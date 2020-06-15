@@ -24,6 +24,11 @@ const registerTeamMemberValidation = (reqBody) => {
             "string.empty": "Ce champ doit être rempli !",
             "any.required": "\"nationalIdCard\" is a required field"
         }),
+        gender: Joi.string().empty().required().messages({     //  should be a select box
+            "string.base": "\"gender\" should be a type of 'text'",
+            "string.empty": "Ce champ doit être rempli !",
+            "any.required": "\"gender\" is a required field"
+        }),
         phoneNumber: Joi.string().pattern(new RegExp("^(\\+216)[0-9]{8}$")).length(12).empty().required().messages({
             "string.base": "\"phoneNumber\" should be a type of 'text'",
             "string.pattern": "\"phoneNumber\" must contain only numbers",
@@ -31,17 +36,24 @@ const registerTeamMemberValidation = (reqBody) => {
             "string.empty": "Ce champ doit être rempli !",
             "any.required": "\"phoneNumber\" is a required field"
         }),
-        status: Joi.array().min(1).items(Joi.string().min(3).max(20).empty().required().messages({
-            "string.base": "\"status\" should be a type of 'text'",
-            "string.min": "\"status\" should have a minimum length of 3 ", // {#limit}
-            "string.max": "\"status\" should have a maximum length of 20", // {#limit}
+        // status: Joi.array().min(1).items(Joi.string().min(3).max(20).empty().required().messages({
+        //     "string.base": "\"status\" should be a type of 'text'",
+        //     "string.min": "\"status\" should have a minimum length of 3 ", // {#limit}
+        //     "string.max": "\"status\" should have a maximum length of 20", // {#limit}
+        //     "string.empty": "Ce champ doit être rempli !",
+        //     "any.required": "\"status\" is a required field"
+        // })),
+        status: Joi.array().min(1),
+        // childhoodInstitution: Joi.string().empty().required().messages({
+        //     "string.base": "\"childhoodInstitution\" should be a type of 'text'",
+        //     "string.empty": "Ce champ doit être rempli !",
+        //     "any.required": "\"childhoodInstitution\" is a required field"
+        // }),
+        location: Joi.string().max(40).empty().required().messages({
+            "string.base": "\"accountName\" should be a type of 'text'",
+            "string.max": "\"accountName\" should have a maximum length of 40 characters", // {#limit}
             "string.empty": "Ce champ doit être rempli !",
-            "any.required": "\"status\" is a required field"
-        })),
-        childhoodInstitution: Joi.string().empty().required().messages({
-            "string.base": "\"childhoodInstitution\" should be a type of 'text'",
-            "string.empty": "Ce champ doit être rempli !",
-            "any.required": "\"childhoodInstitution\" is a required field"
+            "any.required": "\"accountName\" is a required field"
         }),
         governorate: Joi.string().empty().required().messages({     //  should be a select box
             "string.base": "\"accountName\" should be a type of 'text'",

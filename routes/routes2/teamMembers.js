@@ -22,34 +22,38 @@ router.get("/", (req, res) => {
 // @route   *** POST /team_members ***
 // @desc    *** Register teamMember ***
 // @access  *** Public ***
-router.post("/", async (req, res) => {
+router.post("/create_member/:childhoodInstitutionId", async (req, res) => {
     // Validate the data before registering the user (using @hapi/joi)
     const { error, value } = registerTeamMemberValidation(req.body);
 
     if (error) {
         // console.log("error ", error);
         // console.log('error:: ', JSON.stringify(error, null, 2));
-        console.log(JSON.stringify(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}), null, 2));
-        return res.status(400).json(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}));
+        console.log(JSON.stringify(error.details.map(obj => ({ [obj.context.label]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}), null, 2));
+        return res.status(400).json(error.details.map(obj => ({ [obj.context.label]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}));
     }
     try {
         // After validation => Checking if the user is already exist or not in the databse by checking his email
-        const { phoneNumber, childhoodInstitution } = req.body;
-        const parentExists = await Parent.findOne({ "phoneNumbers.mainPhoneNumber": phoneNumber, childhoodInstitution: childhoodInstitution });
-        if (parentExists) return res.status(400).json({ errorMsg: "User already exists" });
+        const { phoneNumber } = req.body;
 
-        const teamMemberExists = await TeamMember.findOne({ phoneNumber: phoneNumber, childhoodInstitution: childhoodInstitution });
-        if (teamMemberExists) return res.status(400).json({ errorMsg: "User already exists" });
+        const teamMemberExists = await TeamMember.findOne({ phoneNumber: phoneNumber, childhoodInstitution: req.params.childhoodInstitutionId });
+        if (teamMemberExists) return res.status(400).json({ errorCode: "01", title: "IMPORTANT !", alert: "User already exists", alertType: "error" });
 
-        const { firstName, lastName, nationalIdCard, status, governorate, teachingLevel, password } = req.body;
+        const parentExists = await Parent.findOne({ "phoneNumbers.mainPhoneNumber": phoneNumber, childhoodInstitution: req.params.childhoodInstitutionId });
+        if (parentExists) return res.status(400).json({ errorCode: "01", title: "IMPORTANT !", alert: "User already exists", alertType: "error" });
+
+
+        const { firstName, lastName, nationalIdCard, gender, status, location, governorate, teachingLevel, password } = req.body;
 
         const newTeamMember = {
             firstName,
             lastName,
             nationalIdCard,
             phoneNumber,
-            status: status.sort(),
-            childhoodInstitution,
+            gender,
+            status: status.sort((a, b) => (a.value > b.value) ? 1 : ((b.value > a.value) ? -1 : 0)),
+            childhoodInstitution: req.params.childhoodInstitutionId,
+            location,
             governorate,
             password // now this password is not encrypted yet
         };
@@ -71,7 +75,7 @@ router.post("/", async (req, res) => {
         await teamMember.save();
 
         // if (teamMember.isVisible && !teamMember.isAccepted && !teamMember.isAllowed) : (default case at registration)
-        return res.json({ alertMsg: "Your account has been successfully created. For security reasons and to protect our Children, all newly created accounts must be examined before having access. You will receive a confirmation message on your telephone number: ... Thank you for your understanding." }); // Votre compte a été créé avec succés. Pour des raisons de sécurité et pour protéger nos Enfants , tous les comptes nouvellement créés doivent être examiner avant d'avoir l'accées.  Vous receverez un message de confirmation sur votre numéro de téléphone: ... Merci pour votre compréhension.
+        return res.json({ title: "Votre compte a été créé avec Succés", alert: "Pour des raisons de sécurité et pour protéger nos Enfants , tous les comptes nouvellement créés doivent être examiner avant d'avoir l'accès.  Vous receverez un message de confirmation sur votre numéro de téléphone:" + teamMember.phoneNumber + "pour pouvoir y accéder. Merci pour votre compréhension.", alertType: "success" });
 
 
 
@@ -184,8 +188,8 @@ router.put("/update_status/:childhoodInstitutionId/:userId", authPrivRoutes, asy
 
             // we're ready to update it in the db
 
-            let toStringTeamstatus = [...animator.status.sort()]; // cette .sort() wa9t tkamel l'appli na7iha zeyda 
-            let toStringStatus = [...status.sort()];
+            let toStringTeamstatus = [...animator.status.sort((a, b) => (a.value > b.value) ? 1 : ((b.value > a.value) ? -1 : 0))]; // cette .sort() wa9t tkamel l'appli na7iha zeyda 
+            let toStringStatus = [...status.sort((a, b) => (a.value > b.value) ? 1 : ((b.value > a.value) ? -1 : 0))];
             if (toStringTeamstatus.toString() === toStringStatus.toString()) return res.status(400).json({ errorMsg: "no changes have been made" }); // aucune modification n'a été éffectuée
 
             //  res.json({ toStringTeamstatus: toStringTeamstatus.toString(), toStringStatus: toStringStatus.toString(), teamMember: teamMember.status, status });

@@ -15,10 +15,21 @@ const TeamMemberSchema = new mongoose.Schema({
     },
     phoneNumber: {
         type: String,
-        required: true
+        required: true   // checkbox          foundationEmitter    manager    animator
     },
-    status: {   // checkbox          foundationEmitter    manager    animator
-        type: [{ type: String, required: true }],
+    status: {
+        type: [
+            {
+                value: {
+                    type: String,
+                    required: true
+                },
+                label: {
+                    type: String,
+                    required: true
+                },
+            }
+        ],
         required: true
     },
     childhoodInstitution: {
