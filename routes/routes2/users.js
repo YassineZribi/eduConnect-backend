@@ -17,7 +17,7 @@ require("dotenv").config();
 // @desc    *** Test route ***
 // @access  *** Public ***
 router.get("/test", (req, res) => {
-    res.send("User route");
+    res.send("User route Done");
 });
 
 
@@ -664,6 +664,57 @@ router.put("/modify_password", authPrivRoutes, async (req, res) => {
 
 
 
+
+
+
+
+
+
+// @route   *** GET /users *** TODO: Done
+// @desc    *** Get one visible parent or teamMember by childhoodInstitution ***
+// @access  *** Private for all TeamMembers ***
+router.get("/one_parent_or_member/:childhoodInstitutionId/:userId", authPrivRoutes, async (req, res) => {
+    if (!checkForHexRegExpFunction(req.params.userId) || !checkForHexRegExpFunction(req.params.childhoodInstitutionId)) return res.status(400).json({ errorMsg: "Can not find User" });
+    try {
+        let userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true }, "-password -__v");
+        if (!userToAccess) {
+            let userToAccess = await Parent.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true }, "-password -__v");
+            if (!userToAccess) return res.status(403).json({ errorMsg: "User Not Found" });
+            if (userToAccess._id == req.params.userId && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+                return res.json(userToAccess); // return me
+            }
+            const childhoodInstitution = req.user.childhoodInstitution;
+            userToAccess = await TeamMember.findOne({ _id: req.params.userId, childhoodInstitution, isVisible: true, isAccepted: true, isAllowed: true }, "-password -__v");
+            if (!userToAccess) return res.status(404).json({ errorMsg: " Can not find User..." });
+            return res.json(userToAccess);
+        }
+        // access only for TeamMembers
+        if (userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+            if (userToAccess._id == req.params.userId) return res.json(userToAccess);  // return me 
+            const childhoodInstitution = req.user.childhoodInstitution;
+            if (userToAccess.status.find(obj => obj.value === "manager")) {
+                let user = await TeamMember.findOne({ $and: [{ _id: req.params.userId, childhoodInstitution, isVisible: true }, { $or: [{ isAccepted: true, isAllowed: true }, { isAccepted: false, isAllowed: false }] }] }, "-password -__v");
+                if (!user) {
+                    user = await Parent.findOne({ $and: [{ _id: req.params.userId, childhoodInstitution, isVisible: true }, { $or: [{ isAccepted: true, isAllowed: true }, { isAccepted: false, isAllowed: false }] }] }, "-password -__v");
+                    if (!user) { console.log("not found"); return res.status(404).json({ errorMsg: " Can not find User" }); }
+                }
+                return res.json(user);
+            } else {
+                let user = await TeamMember.findOne({ _id: req.params.userId, childhoodInstitution, isVisible: true, isAccepted: true, isAllowed: true }, "-password -__v");
+                if (!user) {
+                    user = await Parent.findOne({ _id: req.params.userId, childhoodInstitution, isVisible: true, isAccepted: true, isAllowed: true }, "-password -__v");
+                    if (!user) return res.status(404).json({ errorMsg: " Can not find User." });
+                }
+                res.json(user);
+            }
+
+        } else return res.status(403).json({ errorMsg: "Can not access this data (handle access)" });
+
+    } catch (err) {
+        console.error("error:: ", err.message);
+        res.status(500).json({ errorMsg: "server Error" });
+    }
+});
 
 
 

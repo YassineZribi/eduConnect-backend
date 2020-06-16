@@ -13,7 +13,7 @@ const TeamMember = require("../../models/TeamMember");
 // @desc    *** Test route 1 ***
 // @access  *** Public ***
 router.get("/test1", (req, res) => {
-    res.send("Access Public route");
+    res.send("Access Public route Done");
 });
 
 // @route   *** GET /auth ***
