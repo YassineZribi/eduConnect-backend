@@ -17,6 +17,10 @@ const TeamMemberSchema = new mongoose.Schema({
         type: String,
         required: true   // checkbox          foundationEmitter    manager    animator
     },
+    gender: {
+        type: String,
+        required: true
+    },
     status: {
         type: [
             {
@@ -35,6 +39,10 @@ const TeamMemberSchema = new mongoose.Schema({
     childhoodInstitution: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "ChildhoodInstitution",
+        required: true
+    },
+    location: {
+        type: String,
         required: true
     },
     governorate: {

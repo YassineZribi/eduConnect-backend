@@ -249,7 +249,7 @@ router.get("/all_user_bills/:childhoodInstitutionId/:parentId", authPrivRoutes, 
             if (!checkForHexRegExpFunction(req.params.parentId)) return res.status(400).json({ errorMsg: "Can not find the appropriate Bill" });
             const childhoodInstitution = req.user.childhoodInstitution;
             const bills = await Bill.find({ parent: req.params.parentId, childhoodInstitution, isVisible: true });
-            if (bills.length === 0) return res.status(404).json({ errorMsg: "Can not find user bills" });
+            if (bills.length === 0) return res.status(404).json({ errorMsg: "Can not find user bills" }); // Aucune facture n'est disponible pour le moment.
             res.json(bills);
         } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
 

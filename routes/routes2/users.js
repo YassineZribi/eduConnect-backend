@@ -7,7 +7,7 @@ const Parent = require("../../models/Parent");
 const Bill = require("../../models/Bill");
 const TeamMember = require("../../models/TeamMember");
 const registerParentValidation = require("../validations/registerParentValidation");
-const { updateParentProfilValidationByManager, updateParentProfilValidationByHim, updateMainPhoneNumber, updateOptionalPhoneNumber, updatePasswordValidation } = require("../validations/updateParentValidation");
+const { updateParentProfil, updateParentProfilValidationByHim, updateMainPhoneNumber, updateOptionalPhoneNumber, updatePasswordValidation } = require("../validations/updateParentValidation");
 const authPrivRoutes = require("../../middleware/authPrivRoutes");
 const checkForHexRegExpFunction = require("../validations/checkMongodbIdValidity");
 require("dotenv").config();
@@ -66,7 +66,7 @@ router.post("/create_parent/:childhoodInstitutionId", async (req, res) => {
             accountName: mother.firstName.concat(" ", mother.lastName), //*Salma Kallel*  // Mohamed Zribi   //Salma Kallel Zribi   // Salma ~ Mohamed   // Salma ~ Mohamed Zribi    // Famille Zribi  
             phoneNumbers: {
                 mainPhoneNumber: phoneNumbers.mainPhoneNumber,
-                optionalPhoneNumber: phoneNumbers.optionalPhoneNumber
+                optionalPhoneNumber: phoneNumbers.optionalPhoneNumber === "+216" ? "" : phoneNumbers.optionalPhoneNumber
             },
             location,
             governorate,
@@ -218,7 +218,7 @@ router.put("/up_parent_profile_by_manager/:childhoodInstitutionId/:parentId", au
             // if a parent is not found 
             if (!parent) return res.status(404).json({ errorMsg: "Can not find User" });
             // else
-            const { error, value } = updateParentProfilValidationByManager(req.body);
+            const { error, value } = updateParentProfil(req.body);
             if (error) {
                 // console.log("error ", error);
                 // console.log('error:: ', JSON.stringify(error, null, 2));
@@ -715,6 +715,96 @@ router.get("/one_parent_or_member/:childhoodInstitutionId/:userId", authPrivRout
         res.status(500).json({ errorMsg: "server Error" });
     }
 });
+
+
+
+
+// @route   *** PUT /users *** TODO: Done
+// @desc    *** Update parent profile ***
+// @access  *** Private (only for manager and parent himself) ***
+router.put("/up_parent_profile/:childhoodInstitutionId/:parentId", authPrivRoutes, async (req, res) => {
+    try {
+        let userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
+        if (!userToAccess) {
+            userToAccess = await Parent.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
+            if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
+            if (req.params.parentId !== userToAccess._id.toString()) return res.status(403).json({ accessError: "Can not access this data" });
+            const { error, value } = updateParentProfil(req.body);
+            if (error) {
+                // console.log("error ", error);
+                // console.log('error:: ', JSON.stringify(error, null, 2));
+                console.log(JSON.stringify(error.details.map(obj => ({ [obj.context.label]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}), null, 2));
+                return res.status(400).json(error.details.map(obj => ({ [obj.context.label]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}));
+            }
+
+            const { father, mother, location, governorate, accountName } = req.body;
+
+
+            userToAccess.father = father;
+            userToAccess.mother = mother;
+            userToAccess.location = location;
+            userToAccess.governorate = governorate;
+            userToAccess.accountName = accountName;
+
+            await userToAccess.save();
+            return res.json(userToAccess);
+        }
+        // access only for TeamMembers (only manager )
+        if (userToAccess.status.find(obj => obj.value === "manager") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+            if (!checkForHexRegExpFunction(req.params.parentId)) return res.status(400).json({ errorMsg: "Can not find User" });
+            const childhoodInstitution = req.user.childhoodInstitution;
+            let parent = await Parent.findOne({ _id: req.params.parentId, childhoodInstitution, isVisible: true, isAccepted: true, isAllowed: true });
+            // if a parent is not found 
+            if (!parent) return res.status(404).json({ errorMsg: "Can not find User." });
+            // else
+            const { error, value } = updateParentProfil(req.body);
+            if (error) {
+                // console.log("error ", error);
+                // console.log('error:: ', JSON.stringify(error, null, 2));
+                console.log(JSON.stringify(error.details.map(obj => ({ [obj.context.label]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}), null, 2));
+                return res.status(400).json(error.details.map(obj => ({ [obj.context.label]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}));
+            }
+
+            const { father, mother, location, governorate, accountName } = req.body;
+
+
+            parent.father = father;
+            parent.mother = mother;
+            parent.location = location;
+            parent.governorate = governorate;
+            parent.accountName = accountName;
+            // parent = await Parent.findOneAndUpdate({ _id: req.params.parentId, childhoodInstitution }, { $set: updateParentFields }, { new: true });
+            await parent.save();
+            res.json(parent);
+        } else return res.status(403).json({ accessError: "Can not access this data (handling access)" });
+
+
+    } catch (err) {
+        console.error("error::", err.message);
+        res.status(500).json({ errorMsg: "Server error has occcured !" });
+    }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

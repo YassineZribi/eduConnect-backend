@@ -6,7 +6,7 @@ const jwt = require("jsonwebtoken");
 const Parent = require("../../models/Parent");
 const TeamMember = require("../../models/TeamMember");
 const registerTeamMemberValidation = require("../validations/registerTeamMemberValidation");
-const { updateTeamMemberProfileValidation, updatephoneNumberValidation, updatePasswordValidation, updateStatusValidation, updateTeachingLevelValidation } = require("../validations/updateTeamMemberValidation");
+const { updateTeamMemberProfileValidation, updateTeamMemberProfileValidationWithStatus, updatephoneNumberValidation, updatePasswordValidation, updateStatusValidation, updateTeachingLevelValidation } = require("../validations/updateTeamMemberValidation");
 const authPrivRoutes = require("../../middleware/authPrivRoutes");
 const checkForHexRegExpFunction = require("../validations/checkMongodbIdValidity");
 require("dotenv").config();
@@ -383,5 +383,90 @@ router.put("/modify_password", authPrivRoutes, async (req, res) => {
 
 });
 */
+
+
+
+// @route   *** PUT /team_members *** TODO: Done
+// @desc    *** Update member profile ***
+// @access  *** Private (only for manager and founder and member himself) ***
+router.put("/up_member_profile/:childhoodInstitutionId/:memberId", authPrivRoutes, async (req, res) => {
+    try {
+        let userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
+        if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
+
+        // access only for TeamMembers 
+        if (userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+            if (req.user.id === req.params.memberId) {
+                if (req.body.status) {
+                    const { error, value } = updateTeamMemberProfileValidationWithStatus;
+                    if (error) {
+                        // console.log("error ", error);
+                        // console.log('error:: ', JSON.stringify(error, null, 2));
+                        console.log(JSON.stringify(error.details.map(obj => ({ [obj.context.label]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}), null, 2));
+                        return res.status(400).json(error.details.map(obj => ({ [obj.context.label]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}));
+                    }
+                } else {
+                    const { error, value } = updateTeamMemberProfileValidation(req.body);
+                    if (error) {
+                        // console.log("error ", error);
+                        // console.log('error:: ', JSON.stringify(error, null, 2));
+                        console.log(JSON.stringify(error.details.map(obj => ({ [obj.context.label]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}), null, 2));
+                        return res.status(400).json(error.details.map(obj => ({ [obj.context.label]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}));
+                    }
+                }
+
+                const { firstName, lastName, nationalIdCard, gender, location, governorate, status } = req.body;
+
+                userToAccess.firstName = firstName;
+                userToAccess.lastName = lastName;
+                userToAccess.nationalIdCard = nationalIdCard;
+                userToAccess.gender = gender;
+                userToAccess.location = location;
+                userToAccess.governorate = governorate;
+                if (userToAccess.status.find(obj => obj.value === "manager" || obj.value === "founder")) {
+                    userToAccess.status = status;
+                }
+
+
+                await userToAccess.save();
+                return res.json(userToAccess);
+            } else if (userToAccess.status.find(obj => obj.value === "manager" || obj.value === "founder")) {
+                if (!checkForHexRegExpFunction(req.params.memberId)) return res.status(400).json({ errorMsg: "Can not find User" });
+                const childhoodInstitution = req.user.childhoodInstitution;
+                const member = await TeamMember.findOne({ _id: req.params.memberId, childhoodInstitution, isVisible: true, isAccepted: true, isAllowed: true });
+                if (!member) return res.status(404).json({ error: "Can not find user" });
+
+                const { error, value } = updateTeamMemberProfileValidationWithStatus(req.body);
+                if (error) {
+                    // console.log("error ", error);
+                    // console.log('error:: ', JSON.stringify(error, null, 2));
+                    console.log(JSON.stringify(error.details.map(obj => ({ [obj.context.label]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}), null, 2));
+                    return res.status(400).json(error.details.map(obj => ({ [obj.context.label]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}));
+                }
+                const { firstName, lastName, nationalIdCard, gender, location, governorate, status } = req.body;
+
+                member.firstName = firstName;
+                member.lastName = lastName;
+                member.nationalIdCard = nationalIdCard;
+                member.gender = gender;
+                member.location = location;
+                member.governorate = governorate;
+                member.status = status;
+
+                await member.save();
+                return res.json(member);
+            } else return res.status(401).json({ error: "Can not acces data" });
+        } else return res.status(403).json({ accessError: "Can not access this data (handling access)" });
+
+
+    } catch (err) {
+        console.error("error::", err.message);
+        res.status(500).json({ errorMsg: "Server error has occcured !" });
+    }
+});
+
+
+
+
 
 module.exports = router;

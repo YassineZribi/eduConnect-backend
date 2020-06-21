@@ -36,9 +36,19 @@ const ParentSchema = mongoose.Schema({
         type: String,
         required: true
     },
+    // status: {
+    //     type: [{ type: String }],
+    //     default: ["parent"]
+    // },
     status: {
-        type: [{ type: String }],
-        default: ["parent"]
+        type: [
+            {
+                value: String,
+                label: String
+            }
+
+        ],
+        default: [{ value: "parent", label: "Parent" }]
     },
     children: {
         type: [

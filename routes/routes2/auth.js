@@ -23,9 +23,9 @@ router.get("/load_user", authPrivRoutes, async (req, res) => {
     // res.send('Access Private route ');
     // res.json(req.user);
     try {
-        let user = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true }, "-password -__v");
+        let user = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true }, "-password -__v").populate("childhoodInstitution", ["category"]);
         if (!user) {
-            user = await Parent.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true }, "-password -__v");
+            user = await Parent.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true }, "-password -__v").populate("childhoodInstitution", ["category"]);
             if (!user) return res.status(404).json({ error: "user NOT FOUND" });
         }
         res.json(user);
@@ -51,9 +51,9 @@ router.post("/:childhoodInstitutionId", async (req, res) => {
     try {
         // After validation => Checking if the user is already exist or not in the databse by checking his email
         const { phoneNum, password } = req.body;
-        let user = await TeamMember.findOne({ phoneNumber: phoneNum, childhoodInstitution: req.params.childhoodInstitutionId });
+        let user = await TeamMember.findOne({ phoneNumber: phoneNum, childhoodInstitution: req.params.childhoodInstitutionId }).populate("childhoodInstitution", ["category"]);
         if (!user) {
-            user = await Parent.findOne({ "phoneNumbers.mainPhoneNumber": phoneNum, childhoodInstitution: req.params.childhoodInstitutionId });
+            user = await Parent.findOne({ "phoneNumbers.mainPhoneNumber": phoneNum, childhoodInstitution: req.params.childhoodInstitutionId }).populate("childhoodInstitution", ["category"]);
             if (!user) return res.status(400).json({ errorCode: "01", title: "INCOREECTE !", alert: "Le numéro de téléphone ou le mot de passe est incorrect", alertType: "warning" }); // userNotFound: 'User not found' // Phone number or Password is wrong
         }
         user = user.toJSON(); // AHMED ADDED IT TO GET USER OBJECT WITHOUT ANY ERROR
