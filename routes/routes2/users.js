@@ -678,7 +678,7 @@ router.get("/one_parent_or_member/:childhoodInstitutionId/:userId", authPrivRout
     try {
         let userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true }, "-password -__v");
         if (!userToAccess) {
-            let userToAccess = await Parent.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true }, "-password -__v");
+            userToAccess = await Parent.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true }, "-password -__v");
             if (!userToAccess) return res.status(403).json({ errorMsg: "User Not Found" });
             if (userToAccess._id == req.params.userId && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
                 return res.json(userToAccess); // return me
@@ -788,6 +788,49 @@ router.put("/up_parent_profile/:childhoodInstitutionId/:parentId", authPrivRoute
 
 
 
+// @route   *** PUT /users *** TODO: Done
+// @desc    *** Update avatar of one visible and accepted and allowed parent or teamMember by childhoodInstitution ***
+// @access  *** Private for manager and for user(parent or teamMember) himself ***
+router.put("/update_avatar/:childhoodInstitutionId/:userId", authPrivRoutes, async (req, res) => {
+    if (!checkForHexRegExpFunction(req.params.userId) || !checkForHexRegExpFunction(req.params.childhoodInstitutionId)) return res.status(400).json({ errorMsg: "Can not find User" });
+    const { newAvatarUrl } = req.body;
+    try {
+        let userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true }, "-password -__v");
+        if (!userToAccess) {
+            userToAccess = await Parent.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true }, "-password -__v");
+            if (!userToAccess) return res.status(403).json({ errorMsg: "User Not Found" });
+            if (userToAccess._id == req.params.userId && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+                userToAccess.avatar = newAvatarUrl;
+                await userToAccess.save();
+                return res.json(userToAccess); // return me
+            } else return res.status(404).json({ errorMsg: " Can not find User...." });
+        }
+
+        if (userToAccess.childhoodInstitution == req.params.childhoodInstitutionId && userToAccess._id == req.params.userId) {
+            userToAccess.avatar = newAvatarUrl;
+            await userToAccess.save();
+            return res.json(userToAccess);
+        } // return me 
+        if (userToAccess.childhoodInstitution == req.params.childhoodInstitutionId && userToAccess.status.find(obj => obj.value === "manager")) {
+
+            const childhoodInstitution = req.user.childhoodInstitution;
+            let user = await TeamMember.findOne({ _id: req.params.userId, childhoodInstitution, isVisible: true, isAccepted: true, isAllowed: true }, "-password -__v");
+            if (!user) {
+                user = await Parent.findOne({ _id: req.params.userId, childhoodInstitution, isVisible: true, isAccepted: true, isAllowed: true }, "-password -__v");
+                if (!user) return res.status(404).json({ errorMsg: " Can not find User." });
+            }
+            user.avatar = newAvatarUrl;
+            await user.save();
+            res.json(user);
+
+
+        } else return res.status(403).json({ errorMsg: "Can not access this data (handle access)" });
+
+    } catch (err) {
+        console.error("error:: ", err.message);
+        res.status(500).json({ errorMsg: "server Error" });
+    }
+});
 
 
 
@@ -795,9 +838,30 @@ router.put("/up_parent_profile/:childhoodInstitutionId/:parentId", authPrivRoute
 
 
 
+// @route   *** PUT /users *** TODO: Done
+// @desc    *** Update avatar of one visible and accepted and allowed parent or teamMember by childhoodInstitution ***
+// @access  *** Private for the person himself ***
+router.put("/update_avatar_from_sidebar/:childhoodInstitutionId/:userId", authPrivRoutes, async (req, res) => {
+    console.log('im here');
+    if (!checkForHexRegExpFunction(req.params.userId) || !checkForHexRegExpFunction(req.params.childhoodInstitutionId)) return res.status(400).json({ errorMsg: "Can not find User:" });
+    const { newAvatarUrl } = req.body;
+    try {
+        let userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true }, "-password -__v");
+        if (!userToAccess) {
+            userToAccess = await Parent.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true }, "-password -__v");
+            if (!userToAccess) return res.status(403).json({ errorMsg: "User Not Found" });
+        }
 
-
-
+        if (userToAccess._id == req.params.userId && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+            userToAccess.avatar = newAvatarUrl;
+            await userToAccess.save();
+            return res.json(userToAccess); // return me
+        } else return res.status(404).json({ errorMsg: " Can not find User...." });
+    } catch (err) {
+        console.error("error:: ", err.message);
+        res.status(500).json({ errorMsg: "server Error" });
+    }
+});
 
 
 
