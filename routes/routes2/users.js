@@ -842,7 +842,7 @@ router.put("/update_avatar/:childhoodInstitutionId/:userId", authPrivRoutes, asy
 // @desc    *** Update avatar of one visible and accepted and allowed parent or teamMember by childhoodInstitution ***
 // @access  *** Private for the person himself ***
 router.put("/update_avatar_from_sidebar/:childhoodInstitutionId/:userId", authPrivRoutes, async (req, res) => {
-    console.log('im here');
+
     if (!checkForHexRegExpFunction(req.params.userId) || !checkForHexRegExpFunction(req.params.childhoodInstitutionId)) return res.status(400).json({ errorMsg: "Can not find User:" });
     const { newAvatarUrl } = req.body;
     try {

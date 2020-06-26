@@ -55,6 +55,7 @@ const ParentSchema = mongoose.Schema({
             {
                 firstName: { type: String, required: true },
                 lastName: { type: String, required: true },
+                avatar: { type: String, default: "https://www.pngkey.com/png/full/436-4368930_animated-child-png-free-download-on-cartoon-children.png" },
                 dateOfBirth: { type: Date, required: true },
                 levelOfStudy: { type: String, required: true },
                 gender: { type: String, required: true } // girl boy
@@ -83,7 +84,7 @@ const ParentSchema = mongoose.Schema({
     },
     avatar: {
         type: String,
-        default: "https://www.pngkey.com/png/full/436-4368930_animated-child-png-free-download-on-cartoon-children.png"
+        default: "https://image.freepik.com/vecteurs-libre/parents-personnages-avatars-enfants_24877-24095.jpg"
     }
 }, { timestamps: { createdAt: true, updatedAt: false } });
 
