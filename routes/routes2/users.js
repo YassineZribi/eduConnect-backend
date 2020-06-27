@@ -867,9 +867,83 @@ router.put("/update_avatar_from_sidebar/:childhoodInstitutionId/:userId", authPr
 
 
 
+// @route   *** Put /users ***
+// @desc    *** delete one child ***
+// @access  *** Private ***
+router.put("/parent/:childhoodInstitutionId/:userId/:childId", authPrivRoutes, async (req, res) => {
+    if (!checkForHexRegExpFunction(req.params.userId)) return res.status(400).json({ errorMsg: "Can not find User:" });
+
+    try {
+        const member = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true }, "-password -__v");
+        if (!member) return res.status(404).json({ errorMsg: "Can not find User" });
+        if (member.childhoodInstitution == req.params.childhoodInstitutionId && member.status.find(obj => obj.value === "manager")) {
+            const childhoodInstitution = req.user.childhoodInstitution;
+            const parent = await Parent.findOne({ _id: req.params.userId, childhoodInstitution, isVisible: true, isAccepted: true, isAllowed: true }, "-password -__v");
+            if (!parent) return res.status(404).json({ errorMsg: "Can not find User" });
+            parent.children = parent.children.filter(child => child._id != req.params.childId);
+            parent.save();
+            res.json(parent);
+        } else return res.status(403).json({ errorMsg: "Can not access this data (handle access)" });
+
+    } catch (err) {
+        console.error("error:: ", err.message);
+        res.status(500).json({ errorMsg: "Server Error has occured !" });
+    }
+});
 
 
 
+
+
+// @route   *** PUT /users *** TODO: Done
+// @desc    *** remove parent or animator or manager after accepting it before ***
+// @access  *** Private (only for manager)***
+router.put("/delete_one_user/:childhoodInstitutionId/:userId", authPrivRoutes, async (req, res) => {
+
+    try {
+        const userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
+        if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
+        // access only for TeamMembers (only manager )
+        if (userToAccess.status.find(obj => obj.value === "manager") && !userToAccess.status.find(obj => obj.value === "founder") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+            console.log("one");
+            if (!checkForHexRegExpFunction(req.params.userId)) return res.status(400).json({ errorMsg: "Can not find User" });
+            const childhoodInstitution = req.user.childhoodInstitution;
+            let user = await TeamMember.findOneAndUpdate({ _id: req.params.userId, childhoodInstitution, "status.value": { $nin: ["founder", "manager"] }, isAccepted: true, isVisible: true, isAllowed: true }, { $set: { isVisible: false, isAllowed: false } }, { new: true });
+            if (!user) {
+                user = await Parent.findOneAndUpdate({ _id: req.params.userId, childhoodInstitution, isAccepted: true, isVisible: true, isAllowed: true }, { $set: { isVisible: false, isAllowed: false } }, { new: true });
+                if (!user) return res.status(404).json({ errorMsg: "Can not find User:;:" });
+            }
+            res.json(user);
+        } else if (!userToAccess.status.find(obj => obj.value === "manager") && userToAccess.status.find(obj => obj.value === "founder") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+            console.log("two");
+            if (!checkForHexRegExpFunction(req.params.userId)) return res.status(400).json({ errorMsg: "Can not find User" });
+            const childhoodInstitution = req.user.childhoodInstitution;
+            let user = await TeamMember.findOneAndUpdate({ _id: req.params.userId, childhoodInstitution, "status.value": { $in: ["manager"], $nin: ["founder"] }, isAccepted: true, isVisible: true, isAllowed: true }, { $set: { isVisible: false, isAllowed: false } }, { new: true });
+            if (!user) {
+                return res.status(404).json({ errorMsg: "Can not find User;;;" });
+            }
+            res.json(user);
+        } else if (userToAccess.status.find(obj => obj.value === "manager") && userToAccess.status.find(obj => obj.value === "founder") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+            console.log("three");
+            if (!checkForHexRegExpFunction(req.params.userId)) return res.status(400).json({ errorMsg: "Can not find User" });
+            const childhoodInstitution = req.user.childhoodInstitution;
+            let user = await TeamMember.findOneAndUpdate({ _id: { $eq: req.params.userId, $ne: req.user.id }, childhoodInstitution, "status.value": { $nin: ["founder"] }, isAccepted: true, isVisible: true, isAllowed: true }, { $set: { isVisible: false, isAllowed: false } }, { new: true });
+            if (!user) {
+                user = await Parent.findOneAndUpdate({ _id: req.params.userId, childhoodInstitution, isAccepted: true, isVisible: true, isAllowed: true }, { $set: { isVisible: false, isAllowed: false } }, { new: true });
+                if (!user) return res.status(404).json({ errorMsg: "Can not find User::;;" });
+            }
+            console.log("f and m");
+            res.json(user);
+
+        } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
+
+
+    } catch (err) {
+        console.error("error::", err.message);
+        res.status(500).json({ errorMsg: "Server error has occcured !" });
+    }
+
+});
 
 
 
