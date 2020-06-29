@@ -952,7 +952,7 @@ router.get("/parents_not_accepted_yet/:childhoodInstitutionId", authPrivRoutes, 
 // @route   *** GET /users *** TODO: Done
 // @desc    *** on Change Get Users by childhoodInstitution  *** 
 // @access  *** Private (only for manager)  ***
-router.get("/on_change_get_acc_vis_all_parents/:childhoodInstitutionId/:inputData", authPrivRoutes, async (req, res) => {
+router.get("/on_change_input_get_parents/:childhoodInstitutionId/:inputData/:forAcceptedParents", authPrivRoutes, async (req, res) => {
     try {
         const userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
         if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
@@ -960,7 +960,8 @@ router.get("/on_change_get_acc_vis_all_parents/:childhoodInstitutionId/:inputDat
         if (userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
             const childhoodInstitution = req.user.childhoodInstitution;
             const inputData = `${req.params.inputData}.*`;
-            const parents = await Parent.find({ accountName: { $regex: inputData, $options: "i" }, childhoodInstitution, isVisible: true, isAccepted: true, isAllowed: true }, "-password -__v");
+            console.log({ forAcceptedParents: typeof (req.params.forAcceptedParents) });
+            const parents = await Parent.find({ accountName: { $regex: inputData, $options: "i" }, childhoodInstitution, isVisible: true, isAccepted: req.params.forAcceptedParents === "true" ? true : false, isAllowed: req.params.forAcceptedParents === "true" ? true : false }, "avatar accountName");
             //if (parents.length === 0) return res.status(404).json({ errorMsg: "there are no unaccepted users yet available at the moment" });
             res.json(parents);
         } else return res.status(403).json({ accessError: "Can not access this data (handling access)" });
