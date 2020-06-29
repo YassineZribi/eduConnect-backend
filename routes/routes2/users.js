@@ -260,49 +260,6 @@ router.put("/up_parent_profile_by_manager/:childhoodInstitutionId/:parentId", au
 
 
 // @route   *** GET /users *** TODO: Done
-// @desc    *** Get all accepted parents by childhoodInstitution ***
-// @access  *** Private for all TeamMembers ***
-router.get("/all_accepted_parents/:childhoodInstitutionId", authPrivRoutes, async (req, res) => {
-    try {
-        const userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
-        if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
-        // access only for TeamMembers
-        if (userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
-            const childhoodInstitution = req.user.childhoodInstitution;
-            const parents = await Parent.find({ childhoodInstitution, isAccepted: true, isVisible: true, isAllowed: true }, "-password -__v");
-            if (parents.length === 0) return res.status(404).json({ errorMsg: "there are no users available at the moment" });
-            res.json(parents);
-        } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
-
-    } catch (err) {
-        console.error("error:: ", err.message);
-        res.status(500).json({ errorMsg: "server Error" });
-    }
-});
-
-
-// @route   *** GET /users *** TODO: Done
-// @desc    *** Get all Not accepted parents yet by childhoodInstitution  *** (default case at registration)
-// @access  *** Private (only for manager)  ***
-router.get("/parents_not_accepted_yet/:childhoodInstitutionId", authPrivRoutes, async (req, res) => {
-    try {
-        const userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
-        if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
-        // access only for TeamMembers (only manager )
-        if (userToAccess.status.includes("manager") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
-            const childhoodInstitution = req.user.childhoodInstitution;
-            const parents = await Parent.find({ childhoodInstitution, isVisible: true, isAccepted: false, isAllowed: false }, "-password -__v");
-            if (parents.length === 0) return res.status(404).json({ errorMsg: "there are no unaccepted users yet available at the moment" });
-            res.json(parents);
-        } else return res.status(403).json({ accessError: "Can not access this data (handling access)" });
-
-    } catch (err) {
-        console.error("error:: ", err.message);
-        res.status(500).json({ errorMsg: "server Error" });
-    }
-});
-
-// @route   *** GET /users *** TODO: Done
 // @desc    *** Get one accepted & visible parent by childhoodInstitution ***
 // @access  *** Private for all TeamMembers ***
 router.get("/one_accepted_parent/:childhoodInstitutionId/:parentId", authPrivRoutes, async (req, res) => {
@@ -880,7 +837,7 @@ router.put("/parent/:childhoodInstitutionId/:userId/:childId", authPrivRoutes, a
             const childhoodInstitution = req.user.childhoodInstitution;
             const parent = await Parent.findOne({ _id: req.params.userId, childhoodInstitution, isVisible: true, isAccepted: true, isAllowed: true }, "-password -__v");
             if (!parent) return res.status(404).json({ errorMsg: "Can not find User" });
-            parent.children = parent.children.filter(child => child._id != req.params.childId);
+            parent.children = parent.children.filter(child => child._id.toString() !== req.params.childId);
             parent.save();
             res.json(parent);
         } else return res.status(403).json({ errorMsg: "Can not access this data (handle access)" });
@@ -945,6 +902,74 @@ router.put("/delete_one_user/:childhoodInstitutionId/:userId", authPrivRoutes, a
 
 });
 
+
+
+
+// @route   *** GET /users *** TODO: Done
+// @desc    *** Get all accepted parents by childhoodInstitution ***
+// @access  *** Private for all TeamMembers ***
+router.get("/all_accepted_parents/:childhoodInstitutionId", authPrivRoutes, async (req, res) => {
+    try {
+        const userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
+        if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
+        // access only for TeamMembers
+        if (userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+            const childhoodInstitution = req.user.childhoodInstitution;
+            const parents = await Parent.find({ childhoodInstitution, isAccepted: true, isVisible: true, isAllowed: true }, "-password -__v");
+            //if (parents.length === 0) return res.status(404).json({ errorMsg: "there are no users available at the moment" });
+            res.json(parents);
+        } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
+
+    } catch (err) {
+        console.error("error:: ", err.message);
+        res.status(500).json({ errorMsg: "server Error" });
+    }
+});
+
+
+// @route   *** GET /users *** TODO: Done
+// @desc    *** Get all Not accepted parents yet by childhoodInstitution  *** (default case at registration)
+// @access  *** Private (only for manager)  ***
+router.get("/parents_not_accepted_yet/:childhoodInstitutionId", authPrivRoutes, async (req, res) => {
+    try {
+        const userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
+        if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
+        // access only for TeamMembers (only manager )
+        if (userToAccess.status.find(obj => obj.value === "manager") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+            const childhoodInstitution = req.user.childhoodInstitution;
+            const parents = await Parent.find({ childhoodInstitution, isVisible: true, isAccepted: false, isAllowed: false }, "-password -__v");
+            //if (parents.length === 0) return res.status(404).json({ errorMsg: "there are no unaccepted users yet available at the moment" });
+            res.json(parents);
+        } else return res.status(403).json({ accessError: "Can not access this data (handling access)" });
+
+    } catch (err) {
+        console.error("error:: ", err.message);
+        res.status(500).json({ errorMsg: "server Error" });
+    }
+});
+
+
+// @route   *** GET /users *** TODO: Done
+// @desc    *** on Change Get Users by childhoodInstitution  *** 
+// @access  *** Private (only for manager)  ***
+router.get("/on_change_get_acc_vis_all_parents/:childhoodInstitutionId/:inputData", authPrivRoutes, async (req, res) => {
+    try {
+        const userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
+        if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
+        // access only for TeamMembers (only manager )
+        if (userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+            const childhoodInstitution = req.user.childhoodInstitution;
+            const inputData = `${req.params.inputData}.*`;
+            const parents = await Parent.find({ accountName: { $regex: inputData, $options: "i" }, childhoodInstitution, isVisible: true, isAccepted: true, isAllowed: true }, "-password -__v");
+            //if (parents.length === 0) return res.status(404).json({ errorMsg: "there are no unaccepted users yet available at the moment" });
+            res.json(parents);
+        } else return res.status(403).json({ accessError: "Can not access this data (handling access)" });
+
+    } catch (err) {
+        console.error("error:: ", err.message);
+        res.status(500).json({ errorMsg: "server Error" });
+    }
+});
 
 
 
