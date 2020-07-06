@@ -1000,6 +1000,7 @@ router.get("/members_not_accepted_yet/:childhoodInstitutionId", authPrivRoutes, 
 // @route   *** GET /users *** TODO: Done
 // @desc    *** on Change Get Parents by childhoodInstitution  *** 
 // @access  *** Private (only for manager)  ***
+/*
 router.get("/on_change_input_get_parents/:childhoodInstitutionId/:inputData/:forAcceptedParents", authPrivRoutes, async (req, res) => {
     try {
         const userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
@@ -1019,12 +1020,56 @@ router.get("/on_change_input_get_parents/:childhoodInstitutionId/:inputData/:for
         res.status(500).json({ errorMsg: "server Error" });
     }
 });
+*/
+router.get("/on_change_input_get_parents/:childhoodInstitutionId/:inputData/:forAcceptedParents", authPrivRoutes, async (req, res) => {
+    try {
+        const userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
+        if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
+        // access only for TeamMembers (only manager )
+        if (userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+            const childhoodInstitution = req.user.childhoodInstitution;
+            const parents = await Parent.find({ childhoodInstitution, isVisible: true, isAccepted: req.params.forAcceptedParents === "true" ? true : false, isAllowed: req.params.forAcceptedParents === "true" ? true : false }, "avatar father mother accountName");
+            const fromInput = req.params.inputData.replace(/\s+/g, " ").trim().toLowerCase();
+            let memberAccountName;
+            const parentsToSend = parents.filter(user => {
+                const { father, mother, accountName } = user;
+                if (father && accountName === `${father.firstName} ${father.lastName}`) {
+                    memberAccountName = { firstName: father.firstName, lastName: father.lastName };
+                } else if (mother && accountName === `${mother.firstName} ${mother.lastName}`) {
+                    memberAccountName = { firstName: mother.firstName, lastName: mother.lastName };
+                } else return res.status(400).json({ errorMsg: "incorrect firstName or lastName" });
+
+                let { firstName, lastName } = memberAccountName;
+                firstName = firstName.toLowerCase();
+                lastName = lastName.toLowerCase();
+                let name = `${firstName} ${lastName}`;
+                let resp = name.indexOf(fromInput);
+                if (resp === -1) {
+                    name = `${lastName} ${firstName}`;
+                    resp = name.indexOf(fromInput);
+                    if (resp === -1) return false;
+                }
+                return true;
+                //if (res > -1) { return true; }
+                // else return false;
+            });
+            console.log("here here Y");
+            res.json(parentsToSend.map((user) => ({ firstName: user.father && user.accountName === `${user.father.firstName} ${user.father.lastName}` ? user.father.firstName : user.mother && user.accountName === `${user.mother.firstName} ${user.mother.lastName}` && user.mother.firstName, lastName: user.father && user.accountName === `${user.father.firstName} ${user.father.lastName}` ? user.father.lastName : user.mother && user.accountName === `${user.mother.firstName} ${user.mother.lastName}` && user.mother.lastName, avatar: user.avatar, _id: user._id, fromInput })));
+        } else return res.status(403).json({ accessError: "Can not access this data (handling access)" });
+
+    } catch (err) {
+        console.error("error:: ", err.message);
+        res.status(500).json({ errorMsg: "server Error" });
+    }
+});
+
 
 
 
 // @route   *** GET /users *** TODO: Done
 // @desc    *** on Change Get TeamMembers by childhoodInstitution  *** 
 // @access  *** Private (only for manager)  ***
+/*
 router.get("/on_change_input_get_members/:childhoodInstitutionId/:inputData/:forAcceptedTeamMembers", authPrivRoutes, async (req, res) => {
     try {
         let userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
@@ -1058,6 +1103,42 @@ router.get("/on_change_input_get_members/:childhoodInstitutionId/:inputData/:for
 
             //if (parents.length === 0) return res.status(404).json({ errorMsg: "there are no unaccepted users yet available at the moment" });
             res.json(parents);
+        } else return res.status(403).json({ accessError: "Can not access this data (handling access)" });
+
+    } catch (err) {
+        console.error("error:: ", err.message);
+        res.status(500).json({ errorMsg: "server Error" });
+    }
+});
+*/
+router.get("/on_change_input_get_members/:childhoodInstitutionId/:inputData/:forAcceptedTeamMembers", authPrivRoutes, async (req, res) => {
+    try {
+        let userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
+        if (!userToAccess) {
+            userToAccess = await Parent.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
+            if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
+        }
+        // access only for TeamMembers (only manager )
+        if (userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+            const childhoodInstitution = req.user.childhoodInstitution;
+            const teamMembers = await TeamMember.find({ childhoodInstitution, isVisible: true, isAccepted: req.params.forAcceptedTeamMembers === "true" ? true : false, isAllowed: req.params.forAcceptedTeamMembers === "true" ? true : false }, "avatar firstName lastName");
+            const fromInput = req.params.inputData.replace(/\s+/g, " ").trim().toLowerCase();
+            const teamMembersToSend = teamMembers.filter(user => {
+                const firstName = user.firstName.toLowerCase();
+                const lastName = user.lastName.toLowerCase();
+                let name = `${firstName} ${lastName}`;
+                let res = name.indexOf(fromInput);
+                if (res === -1) {
+                    name = `${lastName} ${firstName}`;
+                    res = name.indexOf(fromInput);
+                    if (res === -1) return false;
+                }
+                return true;
+                //if (res > -1) { return true; }
+                // else return false;
+            });
+            // console.log(teamMembersToSend);
+            res.json(teamMembersToSend.map((user) => ({ firstName: user.firstName, lastName: user.lastName, avatar: user.avatar, _id: user._id, fromInput })));
         } else return res.status(403).json({ accessError: "Can not access this data (handling access)" });
 
     } catch (err) {
