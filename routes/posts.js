@@ -32,7 +32,7 @@ router.post("/:childhoodInstitutionId", authPrivRoutes, async (req, res) => {
 
 
         // access only for TeamMembers (only manager )
-        if (userToAccess.status.includes("manager") && userToAccess.childhoodInstitution.toString() === req.params.childhoodInstitutionId) {
+        if (userToAccess.status.find(obj => obj.value === "manager") && userToAccess.childhoodInstitution.toString() === req.params.childhoodInstitutionId) {
             const { error, value } = createPostValidation(req.body);
 
             if (error) {
@@ -70,16 +70,16 @@ router.get("/:childhoodInstitutionId", authPrivRoutes, async (req, res) => {
         let userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true }); // .populate("childhoodInstitution", ["institutionName", "logo"])
         if (!userToAccess) {
             userToAccess = await Parent.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
-            if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
+            if (!userToAccess) return res.status(403).json({ errorMsg: "Can not access this data" });
 
         }
 
         // access only for TeamMembers (only manager )
         if (userToAccess.childhoodInstitution.toString() === req.params.childhoodInstitutionId) {
-            const posts = await Post.find({ childhoodInstitution: req.user.childhoodInstitution }).sort({ date: -1 });
-            if (posts.length === 0) return res.status(404).json({ errorMsg: "there is no posts to show" });
+            const posts = await Post.find({ childhoodInstitution: req.user.childhoodInstitution }).sort({ date: -1 }).populate("childhoodInstitution", ["institutionName", "logo"]);
+            //if (posts.length === 0) return res.status(404).json({ errorMsg: "there is no posts to show" });
             res.json(posts);
-        } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
+        } else return res.status(403).json({ errorMsg: "Can not access this data (handle access)" });
 
     } catch (err) {
         console.error("error:: ", err.message);
