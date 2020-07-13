@@ -493,15 +493,15 @@ router.get("/all_comments_by_post/:childhoodInstitutionId/:post_id", authPrivRou
         let userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true }); // .populate("childhoodInstitution", ["institutionName", "logo"])
         if (!userToAccess) {
             userToAccess = await Parent.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
-            if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
+            if (!userToAccess) return res.status(403).json({ errorMsg: "Can not access this data" });
 
         }
         if (userToAccess.childhoodInstitution.toString() === req.params.childhoodInstitutionId) {
             if (!checkForHexRegExpFunction(req.params.post_id)) return res.status(400).json({ errorMsg: "Can not find Post" });
             const comments = await Comment.find({ post: req.params.post_id, childhoodInstitution: req.user.childhoodInstitution });
-            if (comments.length === 0) return res.status(404).json({ errorMsg: "there is no comments to show" });
+            //if (comments.length === 0) return res.status(404).json({ errorMsg: "there is no comments to show" });
             res.json(comments);
-        } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
+        } else return res.status(403).json({ errorMsg: "Can not access this data (handle access)" });
 
     } catch (err) {
         console.error("error:: ", err.message);
