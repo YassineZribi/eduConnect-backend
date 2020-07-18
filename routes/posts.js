@@ -134,9 +134,9 @@ router.delete("/:childhoodInstitutionId/:post_id", authPrivRoutes, async (req, r
             await Comment.deleteMany({ post: post._id });
             // check user: (this below line means that only the user who created this posts can delete it )
             // if (post.user.toString() !== req.user.id) return res.status(403).json({ errorMsg: "User not authorized" });
-
-            await post.remove();
-            res.json({ msg: "Post removed !" });
+            const postToRemove = await post.remove();
+            // console.log({ postToRemove });
+            res.json(postToRemove);
         } else return res.status(403).json({ errorMsg: "Can not access this data (User not authorized)" });
 
     } catch (err) {
