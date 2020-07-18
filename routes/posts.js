@@ -28,7 +28,7 @@ router.get("/test", (req, res) => {
 router.post("/:childhoodInstitutionId", authPrivRoutes, async (req, res) => {
     try {
         const userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true }); // .populate("childhoodInstitution", ["institutionName", "logo"])
-        if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
+        if (!userToAccess) return res.status(403).json({ errorMsg: "Can not access this data" });
 
 
         // access only for TeamMembers (only manager )
@@ -42,6 +42,10 @@ router.post("/:childhoodInstitutionId", authPrivRoutes, async (req, res) => {
                 return res.status(400).json(error.details.map(obj => ({ [obj.context.key]: obj.message })).reduce((acc, cV) => ({ ...acc, ...cV }), {}));
             }
 
+            if (req.body.text === "" && req.body.imagesAndVideos.length === 0) {
+                return res.status(400).json({ errorMsg: "Post can not be empty !" });
+            }
+
             const newPost = {
                 teamMember: req.user.id,
                 text: req.body.text,
@@ -50,11 +54,12 @@ router.post("/:childhoodInstitutionId", authPrivRoutes, async (req, res) => {
             };
 
 
-            const post = new Post(newPost);
+            let post = new Post(newPost);
+            post = await Post.populate(post, { path: "childhoodInstitution" });
             await post.save();
             res.json(post);
 
-        } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
+        } else return res.status(403).json({ errorMsg: "Can not access this data (handle access)" });
     } catch (err) {
         console.error("error:: ", err.message);
         res.status(500).json({ errorMsg: "server Error" });
@@ -119,9 +124,9 @@ router.get("/:childhoodInstitutionId/:post_id", authPrivRoutes, async (req, res)
 router.delete("/:childhoodInstitutionId/:post_id", authPrivRoutes, async (req, res) => {
     try {
         const userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
-        if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
+        if (!userToAccess) return res.status(403).json({ errorMsg: "Can not access this data" });
         // access only for TeamMembers (only manager )
-        if (userToAccess.status.includes("manager") && userToAccess.childhoodInstitution.toString() === req.params.childhoodInstitutionId) {
+        if (userToAccess.status.find(obj => obj.value === "manager") && userToAccess.childhoodInstitution.toString() === req.params.childhoodInstitutionId) {
             // check if the mongodb id is true 
             if (!checkForHexRegExpFunction(req.params.post_id)) return res.status(400).json({ errorMsg: "Can not find Post.." });
             let post = await Post.findOne({ _id: req.params.post_id, childhoodInstitution: req.user.childhoodInstitution });
@@ -132,7 +137,7 @@ router.delete("/:childhoodInstitutionId/:post_id", authPrivRoutes, async (req, r
 
             await post.remove();
             res.json({ msg: "Post removed !" });
-        } else return res.status(403).json({ accessError: "Can not access this data (User not authorized)" });
+        } else return res.status(403).json({ errorMsg: "Can not access this data (User not authorized)" });
 
     } catch (err) {
         console.error("error:: ", err.message);
@@ -153,7 +158,7 @@ router.put("/add_like2/:post_id", authPrivRoutes, async (req, res) => {
         if (!userToAccess) {
             userToAccess = await Parent.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
             if (userToAccess) userIs = "Parent";
-            if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
+            if (!userToAccess) return res.status(403).json({ errorMsg: "Can not access this data" });
         }
         const post = await Post.findOne({ _id: req.params.post_id, childhoodInstitution: req.user.childhoodInstitution });
         if (!post) return res.status(404).json({ errorMsg: "post not found" });
@@ -198,7 +203,7 @@ router.put("/add_dislike2/:post_id", authPrivRoutes, async (req, res) => {
         if (!userToAccess) {
             userToAccess = await Parent.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
             if (userToAccess) userIs = "Parent";
-            if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
+            if (!userToAccess) return res.status(403).json({ errorMsg: "Can not access this data" });
         }
         const post = await Post.findOne({ _id: req.params.post_id, childhoodInstitution: req.user.childhoodInstitution });
         if (!post) return res.status(404).json({ errorMsg: "post not found" });
