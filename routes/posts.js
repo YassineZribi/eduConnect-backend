@@ -80,8 +80,8 @@ router.get("/:childhoodInstitutionId", authPrivRoutes, async (req, res) => {
         }
 
         // access only for TeamMembers (only manager )
-        if (userToAccess.childhoodInstitution.toString() === req.params.childhoodInstitutionId) {
-            const posts = await Post.find({ childhoodInstitution: req.user.childhoodInstitution }).sort({ date: -1 }).populate("childhoodInstitution", ["institutionName", "logo"]);
+        if (userToAccess.childhoodInstitution.toString() === req.params.childhoodInstitutionId) {                                                              // childhoodInstitution: on peut ajouter ce field avec "user <ici>" mais je trouve que c'est inutile et représente un gaspillage en performance.
+            const posts = await Post.find({ childhoodInstitution: req.user.childhoodInstitution }).sort({ date: -1 }).populate([{ path: "comments", populate: { path: "user" } }, { path: "childhoodInstitution", select: "institutionName logo" }]);
             //if (posts.length === 0) return res.status(404).json({ errorMsg: "there is no posts to show" });
             res.json(posts);
         } else return res.status(403).json({ errorMsg: "Can not access this data (handle access)" });
@@ -135,7 +135,7 @@ router.delete("/:childhoodInstitutionId/:post_id", authPrivRoutes, async (req, r
             // check user: (this below line means that only the user who created this posts can delete it )
             // if (post.user.toString() !== req.user.id) return res.status(403).json({ errorMsg: "User not authorized" });
             const postToRemove = await post.remove();
-            // console.log({ postToRemove });
+            console.log("Post removed");
             res.json(postToRemove);
         } else return res.status(403).json({ errorMsg: "Can not access this data (User not authorized)" });
 
@@ -276,8 +276,11 @@ router.post("/:childhoodInstitutionId/comment/:post_id", authPrivRoutes, async (
             };
 
 
-            const comment = new Comment(newComment);
+            let comment = new Comment(newComment);
+            comment = await Comment.populate(comment, [{ path: "childhoodInstitution" }, { path: "user", select: "-password" }]);
             await comment.save();
+            await Post.findByIdAndUpdate(post._id, { $push: { comments: comment._id } });
+            // await comment.save();
             res.json(comment);
 
         } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
@@ -292,7 +295,46 @@ router.post("/:childhoodInstitutionId/comment/:post_id", authPrivRoutes, async (
 // @route   *** Delete /posts ***
 // @desc    *** (delete) one comment by ID ***
 // @access  *** Private ***
-router.delete("/:childhoodInstitutionId/:comment_id", authPrivRoutes, async (req, res) => {
+// router.delete("/delete_comment/:childhoodInstitutionId/:comment_id", authPrivRoutes, async (req, res) => {
+//     try {
+//         let userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true }); // .populate("childhoodInstitution", ["institutionName", "logo"])
+//         if (!userToAccess) {
+//             userToAccess = await Parent.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
+//             if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
+
+//         }
+//         // check if the mongodb id is true  TODO
+//         let comment = await Comment.findById(req.params.comment_id);
+//         if (!comment) return res.status(404).json({ errorMsg: "comment not found (comment does not exist)" });
+//         let post = await Post.findById(comment.post);
+//         console.log({ post2: post });
+//         // post = {
+//         //     ...post,
+//         //     comments: post.comments.filter(commentId => commentId !== req.params.comment_id)
+//         // };
+//         console.log({ post3: post });
+//         await Post.findByIdAndUpdate(comment.post, { $set: { comments: post.comments.filter(commentId => commentId !== req.params.comment_id) } });
+//         console.log({ post });
+//         // access only for TeamMembers (only manager ) or the person who make the comment
+//         if ((userToAccess.status.includes("manager") || comment.user.toString() === req.user.id) && userToAccess.childhoodInstitution.toString() === req.params.childhoodInstitutionId) {
+
+
+//             await comment.remove();
+//             res.json({ msg: "Comment removed !" });
+//         } else return res.status(403).json({ accessError: "User not authorized" });
+
+//     } catch (err) {
+//         console.error("error:: ", err.message);
+//         res.status(500).json({ errorMsg: "server Error" });
+//     }
+
+// });
+
+
+// @route   *** Delete /posts ***
+// @desc    *** (delete) one comment by ID ***
+// @access  *** Private ***
+router.delete("/delete_comment2/:childhoodInstitutionId/:post_id/:comment_id", authPrivRoutes, async (req, res) => {
     try {
         let userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true }); // .populate("childhoodInstitution", ["institutionName", "logo"])
         if (!userToAccess) {
@@ -300,16 +342,24 @@ router.delete("/:childhoodInstitutionId/:comment_id", authPrivRoutes, async (req
             if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
 
         }
-        // check if the mongodb id is true  TODO
+
+
         let comment = await Comment.findById(req.params.comment_id);
+        console.log({ comment });
         if (!comment) return res.status(404).json({ errorMsg: "comment not found (comment does not exist)" });
 
         // access only for TeamMembers (only manager ) or the person who make the comment
-        if ((userToAccess.status.includes("manager") || comment.user.toString() === req.user.id) && userToAccess.childhoodInstitution.toString() === req.params.childhoodInstitutionId) {
-
-
+        if ((userToAccess.status.find(obj => obj.value === "manager") || comment.user.toString() === req.user.id) && userToAccess.childhoodInstitution.toString() === req.params.childhoodInstitutionId) {
+            // check if the mongodb id is true  TODO
+            let post = await Post.findById(req.params.post_id);
+            if (!post) return res.status(404).json({ errorMsg: "comment not found post" });
+            post.comments = post.comments.filter(id => { console.log({ id: id.toString(), req: req.params.comment_id }); return id.toString() !== req.params.comment_id; });
+            // console.log({post});
+            await post.save();
             await comment.remove();
-            res.json({ msg: "Post removed !" });
+            console.log({ post });
+            console.log({ filtered: post.comments.filter(id => { console.log({ id: id.toString(), req: req.params.comment_id }); return id.toString() !== req.params.comment_id; }) });
+            res.json({ msg: "Comment removed !" });
         } else return res.status(403).json({ accessError: "User not authorized" });
 
     } catch (err) {
@@ -318,6 +368,12 @@ router.delete("/:childhoodInstitutionId/:comment_id", authPrivRoutes, async (req
     }
 
 });
+
+
+
+
+
+
 
 // @route   *** PUT (delete) /posts ***
 // @desc    *** put (delete) one response  ***
