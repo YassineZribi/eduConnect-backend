@@ -82,7 +82,7 @@ router.get("/:childhoodInstitutionId", authPrivRoutes, async (req, res) => {
 
         // access only for TeamMembers (only manager )
         if (userToAccess.childhoodInstitution.toString() === req.params.childhoodInstitutionId) {                                                              // childhoodInstitution: on peut ajouter ce field avec "user <ici>" mais je trouve que c'est inutile et représente un gaspillage en performance.
-            const posts = await Post.find({ childhoodInstitution: req.user.childhoodInstitution }).sort({ date: -1 }).populate([{ path: "comments", populate: { path: "user" } }, { path: "childhoodInstitution", select: "institutionName logo" }, { path: "comments", populate: { path: "responses.user", model: "TeamMember" } }]); // , { path: "comments", populate: { path: "responses.user", model: "Parent" } }
+            const posts = await Post.find({ childhoodInstitution: req.user.childhoodInstitution }).sort({ date: -1 }).populate([{ path: "comments", populate: { path: "user" } }, { path: "childhoodInstitution", select: "institutionName logo" }, { path: "comments", populate: { path: "responses.userIsTeamMember", model: "TeamMember" } }, { path: "comments", populate: { path: "responses.userIsParent", model: "Parent" } }]); // , { path: "comments", populate: { path: "responses.user", model: "Parent" } }
             //if (posts.length === 0) return res.status(404).json({ errorMsg: "there is no posts to show" });
             res.json(posts);
         } else return res.status(403).json({ errorMsg: "Can not access this data (handle access)" });
@@ -532,6 +532,8 @@ router.post("/:childhoodInstitutionId/comment_response/:comment_id", authPrivRou
 
             const newResponse = {
                 user: req.user.id,
+                userIsParent: req.user.id,
+                userIsTeamMember: req.user.id,
                 onModel: userIs,
                 text: req.body.text,
                 // childhoodInstitution: req.user.childhoodInstitution
