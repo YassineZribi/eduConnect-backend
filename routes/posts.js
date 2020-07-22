@@ -10,6 +10,7 @@ const createCommentValidation = require("./validations/createCommentValidation")
 const createCommentResponseValidation = require("./validations/createCommentResponseValidation");
 
 const checkForHexRegExpFunction = require("./validations/checkMongodbIdValidity");
+const { Mongoose } = require("mongoose");
 
 
 
@@ -81,7 +82,7 @@ router.get("/:childhoodInstitutionId", authPrivRoutes, async (req, res) => {
 
         // access only for TeamMembers (only manager )
         if (userToAccess.childhoodInstitution.toString() === req.params.childhoodInstitutionId) {                                                              // childhoodInstitution: on peut ajouter ce field avec "user <ici>" mais je trouve que c'est inutile et représente un gaspillage en performance.
-            const posts = await Post.find({ childhoodInstitution: req.user.childhoodInstitution }).sort({ date: -1 }).populate([{ path: "comments", populate: { path: "user" } }, { path: "childhoodInstitution", select: "institutionName logo" }]);
+            const posts = await Post.find({ childhoodInstitution: req.user.childhoodInstitution }).sort({ date: -1 }).populate([{ path: "comments", populate: { path: "user" } }, { path: "childhoodInstitution", select: "institutionName logo" }, { path: "comments", populate: { path: "responses.user", model: "TeamMember" } }]); // , { path: "comments", populate: { path: "responses.user", model: "Parent" } }
             //if (posts.length === 0) return res.status(404).json({ errorMsg: "there is no posts to show" });
             res.json(posts);
         } else return res.status(403).json({ errorMsg: "Can not access this data (handle access)" });
@@ -378,7 +379,7 @@ router.delete("/delete_comment2/:childhoodInstitutionId/:post_id/:comment_id", a
 // @route   *** PUT (delete) /posts ***
 // @desc    *** put (delete) one response  ***
 // @access  *** Private ***
-router.delete("/:childhoodInstitutionId/:comment_id/:response_id", authPrivRoutes, async (req, res) => {
+router.delete("/delete_response/:childhoodInstitutionId/:comment_id/:response_id", authPrivRoutes, async (req, res) => {
     try {
         let userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true }); // .populate("childhoodInstitution", ["institutionName", "logo"])
         if (!userToAccess) {
@@ -389,9 +390,10 @@ router.delete("/:childhoodInstitutionId/:comment_id/:response_id", authPrivRoute
         // check if the mongodb id is true  TODO
         let comment = await Comment.findById(req.params.comment_id);
         if (!comment) return res.status(404).json({ errorMsg: "post not found" });
-
+        const response = comment.responses.find(response => response._id.toString() === req.params.response_id);
+        if (!response) return res.status(404).json({ errorMsg: "response not found" });
         // access only for TeamMembers (only manager ) or the person who make the comment
-        if ((userToAccess.status.includes("manager") || comment.user.toString() === req.user.id) && userToAccess.childhoodInstitution.toString() === req.params.childhoodInstitutionId) {
+        if ((userToAccess.status.find(obj => obj.value === "manager") || response.user.toString() === req.user.id) && userToAccess.childhoodInstitution.toString() === req.params.childhoodInstitutionId) {
 
             const findIndex = comment.responses.map(response => response._id.toString()).indexOf(req.params.response_id);
             comment.responses.splice(findIndex, 1);
