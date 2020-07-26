@@ -526,7 +526,7 @@ router.post("/:childhoodInstitutionId/comment_response/:comment_id", authPrivRou
             }
 
 
-            const comment = await Comment.findById(req.params.comment_id);
+            let comment = await Comment.findById(req.params.comment_id);
             if (!comment) return res.status(404).json({ errorMsg: "Can not find the Post" });
 
 
@@ -538,8 +538,14 @@ router.post("/:childhoodInstitutionId/comment_response/:comment_id", authPrivRou
                 text: req.body.text,
                 // childhoodInstitution: req.user.childhoodInstitution
             };
-
+            console.log({ newnewa: typeof (comment._id) });
             comment.responses.push(newResponse);
+            if (userIs === "TeamMember") {
+                comment = await Comment.populate(comment, [{ path: "responses.userIsTeamMember" }]);
+            } else if (userIs === "Parent") {
+                comment = await Comment.populate(comment, [{ path: "responses.userIsParent" }]);
+            }
+            console.log({ comment });
             await comment.save();
             res.json(comment);
         } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
