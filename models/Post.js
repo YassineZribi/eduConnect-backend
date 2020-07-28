@@ -24,6 +24,14 @@ const PostSchema = new mongoose.Schema({
                 type: mongoose.Schema.Types.ObjectId,
                 refPath: "onModel"
             },
+            userIsParent: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Parent"
+            },
+            userIsTeamMember: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "TeamMember"
+            },
             onModel: {
                 type: String,
                 required: true,
@@ -36,6 +44,14 @@ const PostSchema = new mongoose.Schema({
             user: {
                 type: mongoose.Schema.Types.ObjectId,
                 refPath: "onModel"
+            },
+            userIsParent: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Parent"
+            },
+            userIsTeamMember: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "TeamMember"
             },
             onModel: {
                 type: String,
