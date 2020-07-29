@@ -82,7 +82,7 @@ router.get("/:childhoodInstitutionId", authPrivRoutes, async (req, res) => {
 
         // access only for TeamMembers (only manager )
         if (userToAccess.childhoodInstitution.toString() === req.params.childhoodInstitutionId) {                                                              // childhoodInstitution: on peut ajouter ce field avec "user <ici>" mais je trouve que c'est inutile et représente un gaspillage en performance.
-            const posts = await Post.find({ childhoodInstitution: req.user.childhoodInstitution }).sort({ date: -1 }).populate([{ path: "comments", populate: { path: "user" } }, { path: "childhoodInstitution", select: "institutionName logo" }, { path: "comments", populate: { path: "responses.userIsTeamMember", model: "TeamMember" } }, { path: "comments", populate: { path: "responses.userIsParent", model: "Parent" } }]).populate([{ path: "likes.userIsParent", model: "Parent" }, { path: "likes.userIsTeamMember", model: "TeamMember" }, { path: "dislikes.userIsParent", model: "Parent" }, { path: "dislikes.userIsTeamMember", model: "TeamMember" }, { path: "comments", populate: { path: "likes.userIsTeamMember", model: "TeamMember" } }, { path: "comments", populate: { path: "likes.userIsParent", model: "Parent" } }, { path: "comments", populate: { path: "dislikes.userIsTeamMember", model: "TeamMember" } }, { path: "comments", populate: { path: "dislikes.userIsParent", model: "Parent" } }]);
+            const posts = await Post.find({ childhoodInstitution: req.user.childhoodInstitution }).sort({ date: -1 }).populate([{ path: "comments", populate: { path: "user" } }, { path: "childhoodInstitution", select: "institutionName logo" }, { path: "comments", populate: { path: "responses.userIsTeamMember", model: "TeamMember" } }, { path: "comments", populate: { path: "responses.userIsParent", model: "Parent" } }]).populate([{ path: "likes.userIsParent", model: "Parent" }, { path: "likes.userIsTeamMember", model: "TeamMember" }, { path: "dislikes.userIsParent", model: "Parent" }, { path: "dislikes.userIsTeamMember", model: "TeamMember" }, { path: "comments", populate: { path: "likes.userIsTeamMember", model: "TeamMember" } }, { path: "comments", populate: { path: "likes.userIsParent", model: "Parent" } }, { path: "comments", populate: { path: "dislikes.userIsTeamMember", model: "TeamMember" } }, { path: "comments", populate: { path: "dislikes.userIsParent", model: "Parent" } }, { path: "comments", populate: { path: "responses.likes.userIsTeamMember", model: "TeamMember" } }, { path: "comments", populate: { path: "responses.likes.userIsParent", model: "Parent" } }, { path: "comments", populate: { path: "responses.dislikes.userIsTeamMember", model: "TeamMember" } }, { path: "comments", populate: { path: "responses.dislikes.userIsParent", model: "Parent" } }]);
             //if (posts.length === 0) return res.status(404).json({ errorMsg: "there is no posts to show" });
             res.json(posts);
         } else return res.status(403).json({ errorMsg: "Can not access this data (handle access)" });
@@ -613,9 +613,9 @@ router.put("/add_like_to_response/:comment_id/:response_id", authPrivRoutes, asy
         if (!userToAccess) {
             userToAccess = await Parent.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
             if (userToAccess) userIs = "Parent";
-            if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
+            if (!userToAccess) return res.status(403).json({ errorMsg: "Can not access this data" });
         }
-        const comment = await Comment.findOne({ _id: req.params.comment_id, childhoodInstitution: req.user.childhoodInstitution });
+        let comment = await Comment.findOne({ _id: req.params.comment_id, childhoodInstitution: req.user.childhoodInstitution });
         if (!comment) return res.status(404).json({ errorMsg: "post not found" });
 
         const findIndex = comment.responses.map(response => response._id.toString()).indexOf(req.params.response_id);
@@ -638,7 +638,12 @@ router.put("/add_like_to_response/:comment_id/:response_id", authPrivRoutes, asy
             // return res.status(400).json({ errorMsg: "comment.responses already liked by you" });
         }
 
-        comment.responses[findIndex].likes.unshift({ user: req.user.id, onModel: userIs });
+        comment.responses[findIndex].likes.unshift({ user: req.user.id, userIsParent: req.user.id, userIsTeamMember: req.user.id, onModel: userIs });
+        if (userIs === "TeamMember") {
+            comment = await Comment.populate(comment, [{ path: "responses.likes.userIsTeamMember" }, { path: "responses.dislikes.userIsTeamMember" }]);
+        } else if (userIs === "Parent") {
+            comment = await Comment.populate(comment, [{ path: "responses.likes.userIsParent" }, { path: "responses.dislikes.userIsParent" }]);
+        }
         await comment.save();
         //res.json(comment.responses[findIndex].likes);
         res.json({ likes: comment.responses[findIndex].likes, dislikes: comment.responses[findIndex].dislikes });
@@ -660,9 +665,9 @@ router.put("/add_dislike_to_response/:comment_id/:response_id", authPrivRoutes, 
         if (!userToAccess) {
             userToAccess = await Parent.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
             if (userToAccess) userIs = "Parent";
-            if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
+            if (!userToAccess) return res.status(403).json({ errorMsg: "Can not access this data" });
         }
-        const comment = await Comment.findOne({ _id: req.params.comment_id, childhoodInstitution: req.user.childhoodInstitution });
+        let comment = await Comment.findOne({ _id: req.params.comment_id, childhoodInstitution: req.user.childhoodInstitution });
         if (!comment) return res.status(404).json({ errorMsg: "post not found" });
 
         const findIndex = comment.responses.map(response => response._id.toString()).indexOf(req.params.response_id);
@@ -686,7 +691,12 @@ router.put("/add_dislike_to_response/:comment_id/:response_id", authPrivRoutes, 
             // return res.status(400).json({ errorMsg: "post already liked by you" });
         }
 
-        comment.responses[findIndex].dislikes.unshift({ user: req.user.id, onModel: userIs });
+        comment.responses[findIndex].dislikes.unshift({ user: req.user.id, userIsParent: req.user.id, userIsTeamMember: req.user.id, onModel: userIs });
+        if (userIs === "TeamMember") {
+            comment = await Comment.populate(comment, [{ path: "responses.dislikes.userIsTeamMember" }, { path: "responses.likes.userIsTeamMember" }]);
+        } else if (userIs === "Parent") {
+            comment = await Comment.populate(comment, [{ path: "responses.dislikes.userIsParent" }, { path: "responses.likes.userIsParent" }]);
+        }
         await comment.save();
         // res.json(comment.responses[findIndex].dislikes);
         res.json({ likes: comment.responses[findIndex].likes, dislikes: comment.responses[findIndex].dislikes });
