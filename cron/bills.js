@@ -38,7 +38,7 @@ const generateBillsMonthly = async () => {
 
 const setPaymentStatusFieldToNotPaid = async () => {
     const currentMonth = new Date().getMonth() + 1;
-    const bills = await Bill.updateMany({ paymentStatus: "Waiting", monthOfCreation: { $lt: currentMonth } }, { paymentStatus: "Not Paid" });
+    const bills = await Bill.updateMany({ paymentStatus: "waiting", monthOfCreation: { $lt: currentMonth } }, { paymentStatus: "not paid" });
     console.log(bills);
 };
 

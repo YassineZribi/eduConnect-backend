@@ -13,8 +13,8 @@ const BillSchema = mongoose.Schema({
     },
     paymentStatus: {
         type: String,
-        default: "Waiting"             // Payé(e)       // En attente...   // Non payé(e)
-    },                                   // Has Paid      // Waiting      // Not Paid
+        default: "waiting"             // Payé(e)       // En attente...   // Non payé(e)
+    },                                   // has paid      // waiting      // not paid
     totalAmount: {
         type: Number
     },
@@ -40,6 +40,14 @@ const BillSchema = mongoose.Schema({
     description: {
         type: String,
         default: ""
+    },
+    paymentModality: {
+        type: String,
+        default: ""
+    },
+    bank: {
+        checkNumber: { type: String, default: "" },
+        bankName: { type: String, default: "" }
     }
 
 }, { timestamps: { createdAt: true, updatedAt: false } }); // Date de création de la facture (à chaque n^eme jour d'un nouvel mois)

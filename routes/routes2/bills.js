@@ -73,7 +73,7 @@ router.put("/confirmation_bill/:childhoodInstitutionId/:billId", authPrivRoutes,
         const userToAccess = await TeamMember.findById(req.user.id);
         if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data and modify bill confirmation" });
         // access only for TeamMembers (only for manager)
-        if (userToAccess.status.includes("manager") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+        if (userToAccess.status.find(obj => obj.value === "manager") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
             if (!checkForHexRegExpFunction(req.params.billId)) return res.status(400).json({ errorMsg: "Can not find the appropriate Bill to update it" });
             const childhoodInstitution = req.user.childhoodInstitution;
             let bill = await Bill.findOne({ _id: req.params.billId, childhoodInstitution, isVisible: true });
@@ -85,8 +85,13 @@ router.put("/confirmation_bill/:childhoodInstitutionId/:billId", authPrivRoutes,
             const dayToString = new Date().getDate().toString();
             //const allDate = `${dayToString}-${monthToString}-${yearToString}/${pad_with_zeroes(147, 4)}`;
             const allDate = `${dayToString}-${monthToString}-${yearToString}`;
-            const { totalAmount } = req.body;
-            bill = await Bill.findOneAndUpdate({ _id: req.params.billId, childhoodInstitution, isVisible: true }, { $set: { isConfirmed: true, confirmationDate: allDate, paymentStatus: "Has Paid", totalAmount: Number(totalAmount) } }, { new: true });
+            const { totalAmount, description, bankName, checkNumber, paymentModality } = req.body;
+            let fieldsToUpdate;
+            if (paymentModality === "check") fieldsToUpdate = { isConfirmed: true, confirmationDate: allDate, paymentStatus: "has paid", totalAmount: Number(totalAmount), description, "bank.checkNumber": checkNumber, "bank.bankName": bankName, paymentModality };
+            if (paymentModality === "cash") fieldsToUpdate = { isConfirmed: true, confirmationDate: allDate, paymentStatus: "has paid", totalAmount: Number(totalAmount), description, paymentModality };
+            bill = await Bill.findOneAndUpdate({ _id: req.params.billId, childhoodInstitution, isVisible: true }, { $set: fieldsToUpdate }, { new: true });
+            bill = await Bill.populate(bill, [{ path: "parent", select: "accountName children" }]);
+            bill.save();
             res.json(bill);
         } else return res.status(403).json({ accessError: "Can not access this data and modify bill confirmation (handle access)" });
 
@@ -97,14 +102,14 @@ router.put("/confirmation_bill/:childhoodInstitutionId/:billId", authPrivRoutes,
 });
 
 // @route   *** Put /bills ***
-// @desc    *** modify bill paymentStatus to Not Paid*** // with cron 
+// @desc    *** modify bill paymentStatus to not paid*** // with cron 
 // @access  *** Private  ***
 /*
 router.put('/test', async (req, res) => {
     const { billId } = req.body;
     try {
 
-        bill = await Bill.findOneAndUpdate({ _id: billId }, { $set: { paymentStatus: "Not Paid" } }, { new: true });
+        bill = await Bill.findOneAndUpdate({ _id: billId }, { $set: { paymentStatus: "not paid" } }, { new: true });
         if (!bill) return res.status(404).json({ errorMsg: "Can not find the appropriate Bill to update it" });
         res.send(bill);
 
@@ -184,20 +189,23 @@ router.get("/monthlybills/:childhoodInstitutionId", authPrivRoutes, async (req, 
 
 
 // @route   *** GET /bills ***
-// @desc    *** Get all Bills by childhoodInstitution, paymentStatus & month ***
+// @desc    *** Get all Bills by childhoodInstitution, paymentStatus & month *** // paymentStatus: 'has paid' / 'waiting' / 'not paid';
 // @access  *** Private for all TeamMembers sauf animator ***
-router.get("/monthlybills_withstatus/:childhoodInstitutionId", authPrivRoutes, async (req, res) => {
+router.get("/monthlybills_withstatus/:childhoodInstitutionId/:monthNum/:paymentStatus", authPrivRoutes, async (req, res) => {
     try {
+        console.log({ status: req.params.paymentStatus });
         const userToAccess = await TeamMember.findById(req.user.id);
-        if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
+        if (!userToAccess) return res.status(403).json({ errorMsg: "Can not access this data" });
         // access only for TeamMembers (manager and foundationEmitter)
-        if ((userToAccess.status.includes("manager") || userToAccess.status.includes("foundationEmitter")) && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+        if ((userToAccess.status.find(obj => obj.value === "manager") || userToAccess.status.includes("foundationEmitter")) && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
             const childhoodInstitution = req.user.childhoodInstitution;
-            const { monthNum, paymentStatus } = req.body; // paymentStatus: 'Has Paid' / 'Waiting' / 'Not Paid';
-            const monthlyBillsWithStatus = await Bill.find({ childhoodInstitution, monthOfCreation: Number(monthNum), paymentStatus, isVisible: true }, "-__v").populate("parent", ["accountName", "children"]);
-            if (monthlyBillsWithStatus.length === 0) return res.status(404).json({ errorMsg: `there are no bills with the status ${paymentStatus} to show in this month at the moment` });
+            let conditions;
+            if (req.params.paymentStatus === "all") conditions = { childhoodInstitution, monthOfCreation: Number(req.params.monthNum), isVisible: true };
+            else conditions = { childhoodInstitution, monthOfCreation: Number(req.params.monthNum), paymentStatus: req.params.paymentStatus, isVisible: true };
+            const monthlyBillsWithStatus = await Bill.find(conditions, "-__v").populate("parent", ["accountName", "children"]);
+            //if (monthlyBillsWithStatus.length === 0) return res.status(404).json({ errorMsg: `there are no bills with the status ${paymentStatus} to show in this month at the moment` });
             res.json(monthlyBillsWithStatus);
-        } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
+        } else return res.status(403).json({ errorMsg: "Can not access this data (handle access)" });
 
 
     } catch (err) {
