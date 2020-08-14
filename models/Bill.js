@@ -1,4 +1,7 @@
 const mongoose = require("mongoose");
+const Parent = require("./Parent");
+const ChildhoodInstitution = require("./ChildhoodInstitution");
+const Category = require("./Category");
 
 const BillSchema = mongoose.Schema({
     childhoodInstitution: {
@@ -48,6 +51,11 @@ const BillSchema = mongoose.Schema({
     bank: {
         checkNumber: { type: String, default: "" },
         bankName: { type: String, default: "" }
+    },
+    staticInfos: {
+        parent: { type: Parent.schema },
+        childhoodInstitution: { type: ChildhoodInstitution.schema },
+        childhoodInstCategory: { type: Category.schema }
     }
 
 }, { timestamps: { createdAt: true, updatedAt: false } }); // Date de création de la facture (à chaque n^eme jour d'un nouvel mois)

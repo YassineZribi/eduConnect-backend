@@ -14,9 +14,9 @@ function pad_with_zeroes(number, length) {
 }
 
 const generateBillsMonthly = async () => {
-    const allChildhoodInst = await ChildhoodInstitution.find({}, "_id");// .toJSON() or .toJson()
+    const allChildhoodInst = await ChildhoodInstitution.find({}).populate("category");// .toJSON() or .toJson()
     allChildhoodInst.forEach(async childhoodInst => {
-        const parents = await Parent.find({ childhoodInstitution: childhoodInst._id, isAccepted: true, isVisible: true }, "_id");
+        const parents = await Parent.find({ childhoodInstitution: childhoodInst._id, isAccepted: true, isVisible: true });
         let bills = await Bill.find({ childhoodInstitution: childhoodInst._id }).countDocuments();
         parents.forEach(async parent => {
             // console.log({ bills });
@@ -27,7 +27,12 @@ const generateBillsMonthly = async () => {
             const bill = new Bill({
                 childhoodInstitution: childhoodInst._id,
                 parent: parent._id,
-                invoiceNumber
+                invoiceNumber,
+                staticInfos: {
+                    parent,
+                    childhoodInstitution: childhoodInst,
+                    childhoodInstCategory: childhoodInst.category
+                }
             });
             bills += 1;
             await bill.save();

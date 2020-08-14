@@ -5,9 +5,13 @@ const ChildhoodInstitutionSchema = mongoose.Schema({
         type: String,
         required: true
     },
-    logo: {
+    logo: { // for post avatar
         type: String,
         required: isLogoRequired
+    },
+    logoForBills: {
+        type: String,
+        default: ""
     },
     governorate: {
         type: String,

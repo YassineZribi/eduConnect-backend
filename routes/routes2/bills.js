@@ -41,15 +41,22 @@ router.post("/:childhoodInstitutionId/:parentId", authPrivRoutes, async (req, re
             const childhoodInstitution = req.user.childhoodInstitution;
             const parent = await Parent.findOne({ _id: req.params.parentId, childhoodInstitution, isVisible: true, isAccepted: true });
             if (!parent) return res.status(404).json({ errorMsg: "Can not create a bill for a parent who is not registered and verified in this institution" }); // on peut pas créer une facture pour un parent non inscrit dans cette instituion.
-
+            const childhoodInst = await ChildhoodInstitution.findById(req.user.childhoodInstitution).populate("category");
+            if (!childhoodInst) return res.status(404).json({ errorMsg: "Can not create a bill for a not existing institution" });
             const bills = await Bill.find({ childhoodInstitution }).countDocuments();
             const plusOne = bills + 1;
             const invoiceNumber = pad_with_zeroes(plusOne, 4);
             // Create an instance of a Bill
+            console.log({ parent });
             const bill = new Bill({
                 childhoodInstitution,
                 parent: req.params.parentId,
-                invoiceNumber
+                invoiceNumber,
+                staticInfos: {
+                    parent,
+                    childhoodInstitution: childhoodInst,
+                    childhoodInstCategory: childhoodInst.category
+                }
             });
             await bill.save();
             console.log(bill);
@@ -82,9 +89,10 @@ router.put("/confirmation_bill/:childhoodInstitutionId/:billId", authPrivRoutes,
             const yearToString = new Date().getFullYear().toString();
             const month = new Date().getMonth() + 1;
             const monthToString = pad_with_zeroes(month, 2);
-            const dayToString = new Date().getDate().toString();
+            const day = new Date().getDate();
+            const dayToString = pad_with_zeroes(day, 2);
             //const allDate = `${dayToString}-${monthToString}-${yearToString}/${pad_with_zeroes(147, 4)}`;
-            const allDate = `${dayToString}-${monthToString}-${yearToString}`;
+            const allDate = `${dayToString}/${monthToString}/${yearToString}`;
             const { totalAmount, description, bankName, checkNumber, paymentModality } = req.body;
             let fieldsToUpdate;
             if (paymentModality === "check") fieldsToUpdate = { isConfirmed: true, confirmationDate: allDate, paymentStatus: "has paid", totalAmount: Number(totalAmount), description, "bank.checkNumber": checkNumber, "bank.bankName": bankName, paymentModality };
@@ -223,17 +231,17 @@ router.get("/onebill/:childhoodInstitutionId/:parentId/:billId", authPrivRoutes,
         let userToAccess = await TeamMember.findById(req.user.id);
         if (!userToAccess) {
             userToAccess = await Parent.findOne({ _id: req.user.id, isVisible: true, isAccepted: true });
-            if ((!userToAccess) || (userToAccess._id != req.params.parentId)) return res.status(403).json({ accessError: "Can not access this data" });
+            if ((!userToAccess) || (userToAccess._id.toString() != req.params.parentId)) return res.status(403).json({ errorMsg: "Can not access this data" });
         }
-        if (userToAccess.status.length === 1 && userToAccess.status.includes("animator")) return res.status(403).json({ accessError: "Can not access this data" });
+        if (userToAccess.status.length === 1 && userToAccess.status.find(obj => obj.value === "animator")) return res.status(403).json({ errorMsg: "Can not access this data" });
         // access only for TeamMembers (only for manager)
         if (userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
             if (!checkForHexRegExpFunction(req.params.billId) || !checkForHexRegExpFunction(req.params.parentId)) return res.status(400).json({ errorMsg: "Can not find the appropriate Bill" });
             const childhoodInstitution = req.user.childhoodInstitution;
-            const bill = await Bill.findOne({ _id: req.params.billId, parent: req.params.parentId, childhoodInstitution, isVisible: true });
+            const bill = await Bill.findOne({ _id: req.params.billId, parent: req.params.parentId, childhoodInstitution, isVisible: true, isConfirmed: true }).populate("parent childhoodInstitution");
             if (!bill) return res.status(404).json({ errorMsg: "Can not find the appropriate Bill" });
             res.json(bill);
-        } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
+        } else return res.status(403).json({ errorMsg: "Can not access this data (handle access)" });
 
     } catch (err) {
         console.error("error:: ", err.message);

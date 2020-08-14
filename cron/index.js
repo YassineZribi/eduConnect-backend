@@ -13,9 +13,9 @@ cron.schedule('0 4 1 1,2,3,4,5,9,10,11,12 *', async () => {
 }, {timezone: 'Europe/Paris'});
 */
 
-/*
-generateBillsMonthly();
-*/
+
+// generateBillsMonthly();
+
 
 
 
