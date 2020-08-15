@@ -21,6 +21,10 @@ const ChildhoodInstitutionSchema = mongoose.Schema({
         type: String,
         required: true
     },
+    email: {
+        type: String,
+        required: true
+    },
     phoneNumbers: {
         type: {
             fixedPhoneNumber: { String, required: true },

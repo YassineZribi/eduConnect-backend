@@ -36,7 +36,7 @@ router.post("/:childhoodInstitutionId/:parentId", authPrivRoutes, async (req, re
         const userToAccess = await TeamMember.findById(req.user.id);
         if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data and create a bill" });
         // access only for TeamMembers (only for manager)
-        if (userToAccess.status.includes("manager") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+        if (userToAccess.status.find(obj => obj.value === "manager") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
             if (!checkForHexRegExpFunction(req.params.parentId)) return res.status(400).json({ errorMsg: "Can not create a bill for a parent who is not registered in this institution" });
             const childhoodInstitution = req.user.childhoodInstitution;
             const parent = await Parent.findOne({ _id: req.params.parentId, childhoodInstitution, isVisible: true, isAccepted: true });

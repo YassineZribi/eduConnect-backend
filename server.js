@@ -24,6 +24,7 @@ app.use("/team_members", require("./routes/routes2/teamMembers"));
 app.use("/bills", require("./routes/routes2/bills"));
 app.use("/auth", require("./routes/routes2/auth"));
 app.use("/posts", require("./routes/posts"));
+app.use("/calendar_events", require("./routes/routes2/calendarEvents"));
 
 
 app.get("/", (req, res) => {

@@ -125,19 +125,19 @@ router.put("/accept_user/:childhoodInstitutionId/:userId", authPrivRoutes, async
 
     try {
         const userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
-        if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
+        if (!userToAccess) return res.status(403).json({ errorMsg: "Can not access this data" });
         // access only for TeamMembers (only manager )
-        if (userToAccess.status.includes("manager") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+        if (userToAccess.status.find(obj => obj.value === "manager") && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
             if (!checkForHexRegExpFunction(req.params.userId)) return res.status(400).json({ errorMsg: "Can not find User" });
             const childhoodInstitution = req.user.childhoodInstitution;
-            let user = await TeamMember.findOneAndUpdate({ _id: req.params.userId, childhoodInstitution, status: { $in: ["animator"] }, isVisible: true, isAccepted: false, isAllowed: false }, { $set: { isAccepted: true, isAllowed: true } }, { new: true });
+            let user = await TeamMember.findOneAndUpdate({ _id: req.params.userId, childhoodInstitution, "status.value": "animator", isVisible: true, isAccepted: false, isAllowed: false }, { $set: { isAccepted: true, isAllowed: true } }, { new: true });
             if (!user) {
                 user = await Parent.findOneAndUpdate({ _id: req.params.userId, childhoodInstitution, isVisible: true, isAccepted: false, isAllowed: false }, { $set: { isAccepted: true, isAllowed: true } }, { new: true });
                 if (!user) return res.status(404).json({ errorMsg: "Can not find User" });
             }
             res.json(user);
 
-        } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
+        } else return res.status(403).json({ errorMsg: "Can not access this data (handle access)" });
 
     } catch (err) {
         console.error("error::", err.message);
@@ -310,7 +310,7 @@ router.get("/one_parent_not_accepted_yet/:childhoodInstitutionId/:parentId", aut
 router.get("/all_children/:childhoodInstitutionId", authPrivRoutes, async (req, res) => {
     try {
         const userToAccess = await TeamMember.findOne({ _id: req.user.id, isVisible: true, isAccepted: true, isAllowed: true });
-        if (!userToAccess) return res.status(403).json({ accessError: "Can not access this data" });
+        if (!userToAccess) return res.status(403).json({ errorMsg: "Can not access this data" });
         // access only for TeamMembers
         if (userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
             const childhoodInstitution = req.user.childhoodInstitution;
@@ -341,7 +341,7 @@ router.get("/all_children/:childhoodInstitutionId", authPrivRoutes, async (req, 
 
 
             res.json(childrens);
-        } else return res.status(403).json({ accessError: "Can not access this data (handle access)" });
+        } else return res.status(403).json({ errorMsg: "Can not access this data (handle access)" });
 
     } catch (err) {
         console.error("error:: ", err.message);
