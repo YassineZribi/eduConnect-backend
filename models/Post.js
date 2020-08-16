@@ -11,7 +11,9 @@ const PostSchema = new mongoose.Schema({
     },
     imagesAndVideos: [
         {
-            type: String
+            url: String,
+            category: String
+
         }
     ],
     childhoodInstitution: {                     // .populate("childhoodInstitution", ["institutionName", "logo"])
