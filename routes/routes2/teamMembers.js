@@ -5,11 +5,13 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Parent = require("../../models/Parent");
 const TeamMember = require("../../models/TeamMember");
+const ChildhoodInstitution = require("../../models/ChildhoodInstitution");
 const registerTeamMemberValidation = require("../validations/registerTeamMemberValidation");
 const { updateTeamMemberProfileValidation, updateTeamMemberProfileValidationWithStatus, updatephoneNumberValidation, updatePasswordValidation, updateStatusValidation, updateTeachingLevelValidation } = require("../validations/updateTeamMemberValidation");
 const authPrivRoutes = require("../../middleware/authPrivRoutes");
 const checkForHexRegExpFunction = require("../validations/checkMongodbIdValidity");
 require("dotenv").config();
+const { sendMessage } = require("../../helpers/sms");
 
 // @route   *** GET /team_members ***
 // @desc    *** Test route ***
@@ -72,10 +74,18 @@ router.post("/create_member/:childhoodInstitutionId", async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         teamMember.password = await bcrypt.hash(password, salt);
         // All right , now we can Interact with the database and register the user 
+        if (teamMember.status && !teamMember.status.find(obj => obj.value === "manager") && !teamMember.status.find(obj => obj.value === "founder")) {
+            const childhoodInstitution = await ChildhoodInstitution.findById(req.params.childhoodInstitutionId);
+            if (childhoodInstitution) {
+                const mainPhoneNumber = childhoodInstitution.phoneNumbers.mobilePhoneNumber.mainPhoneNumber;
+                sendMessage(mainPhoneNumber, "Un nouveau utilisateur demande de rejoindre l'équipe. Veuillez consulter l'espace 'Rejoindre l'équipe'.");
+            }
+
+        }
         await teamMember.save();
 
         // if (teamMember.isVisible && !teamMember.isAccepted && !teamMember.isAllowed) : (default case at registration)
-        return res.json({ title: "Votre compte a été créé avec Succés", alert: "Pour des raisons de sécurité et pour protéger nos Enfants , tous les comptes nouvellement créés doivent être examiner avant d'avoir l'accès.  Vous receverez un message de confirmation sur votre numéro de téléphone:" + teamMember.phoneNumber + "pour pouvoir y accéder. Merci pour votre compréhension.", alertType: "success" });
+        return res.json({ title: "Votre compte a été créé avec Succés", alert: "Pour des raisons de sécurité et pour protéger nos Enfants , tous les comptes nouvellement créés doivent être examiner avant d'avoir l'accès.  Vous receverez un message de confirmation sur votre numéro de téléphone: " + teamMember.phoneNumber + " pour pouvoir y accéder. Merci pour votre compréhension.", alertType: "success" });
 
 
 

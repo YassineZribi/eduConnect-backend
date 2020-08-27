@@ -88,7 +88,7 @@ router.post("/:childhoodInstitutionId", async (req, res) => {
         // if something goes wrong (server error or something's wrong with the server)
         console.log("error::::", err);
         // Le code de réponse HyperText Transfer Protocol (HTTP) d'erreur serveur 500 Internal Server Error indique que le serveur a rencontré un problème inattendu qui l'empêche de répondre à la requête.
-        res.status(500).json({ serverError: "Server error was occured!!!" });
+        res.status(500).json({ errorMsg: "Server error was occured!!!" });
 
     }
 

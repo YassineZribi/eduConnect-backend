@@ -70,7 +70,7 @@ const TeamMemberSchema = new mongoose.Schema({
     },
     avatar: {
         type: String,
-        default: "https://lh4.googleusercontent.com/proxy/Ep36GcwuLJ3MMM4bFTWf0rzoOu7jmPUEtkR2wGGRUQkNAI1X52JJd3OTXsnNktJIjaZtZV_QN-4pwYi1qANfSLkeS_YteDI",
+        default: "https://res.cloudinary.com/dwnijopcn/image/upload/v1597616092/default_avatar_for_teammember_dvcgpo.png",
 
     },
     createdOn: {

@@ -6,11 +6,13 @@ const jwt = require("jsonwebtoken");
 const Parent = require("../../models/Parent");
 const Bill = require("../../models/Bill");
 const TeamMember = require("../../models/TeamMember");
+const ChildhoodInstitution = require("../../models/ChildhoodInstitution");
 const registerParentValidation = require("../validations/registerParentValidation");
 const { updateParentProfil, updateParentProfilValidationByHim, updateMainPhoneNumber, updateOptionalPhoneNumber, updatePasswordValidation } = require("../validations/updateParentValidation");
 const authPrivRoutes = require("../../middleware/authPrivRoutes");
 const checkForHexRegExpFunction = require("../validations/checkMongodbIdValidity");
 require("dotenv").config();
+const { sendMessage } = require("../../helpers/sms");
 
 
 // @route   *** GET /users ***
@@ -84,6 +86,12 @@ router.post("/create_parent/:childhoodInstitutionId", async (req, res) => {
         // All right , now we can Interact with the database and register the user 
         await parent.save();
 
+        const childhoodInstitution = await ChildhoodInstitution.findById(req.params.childhoodInstitutionId);
+        if (childhoodInstitution) {
+            const mainPhoneNumber = childhoodInstitution.phoneNumbers.mobilePhoneNumber.mainPhoneNumber;
+            sendMessage(mainPhoneNumber, "Un nouveau parent demande une pré-inscription. Veuillez consulter l'espace 'Parents en attente'.");
+        }
+
         // if (parent.isVisible && !parent.isAccepted && !parent.isAllowed) : (default case at registration)
         return res.json({ title: "Votre compte a été créé avec Succés", alert: "Pour des raisons de sécurité et pour protéger nos Enfants , tous les comptes nouvellement créés doivent être examiner avant d'avoir l'accès.  Vous receverez un message de confirmation sur votre numéro de téléphone:" + parent.phoneNumbers.mainPhoneNumber + "pour pouvoir y accéder. Merci pour votre compréhension.", alertType: "success" });
 
@@ -134,9 +142,10 @@ router.put("/accept_user/:childhoodInstitutionId/:userId", authPrivRoutes, async
             if (!user) {
                 user = await Parent.findOneAndUpdate({ _id: req.params.userId, childhoodInstitution, isVisible: true, isAccepted: false, isAllowed: false }, { $set: { isAccepted: true, isAllowed: true } }, { new: true });
                 if (!user) return res.status(404).json({ errorMsg: "Can not find User" });
+                sendMessage(user.phoneNumbers && user.phoneNumbers.mainPhoneNumber, "Votre demande de pré-inscription a été acceptée avec succés. Vous pouvez maintenant accéder à votre compte.");
             }
             res.json(user);
-
+            sendMessage(user.phoneNumber, "Votre demande à rejoindre l'équipe a été acceptée avec succés. Vous pouvez maintenant accéder à votre compte.");
         } else return res.status(403).json({ errorMsg: "Can not access this data (handle access)" });
 
     } catch (err) {

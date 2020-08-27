@@ -84,7 +84,7 @@ const ParentSchema = mongoose.Schema({
     },
     avatar: {
         type: String,
-        default: "https://image.freepik.com/vecteurs-libre/parents-personnages-avatars-enfants_24877-24095.jpg"
+        default: "https://res.cloudinary.com/dwnijopcn/image/upload/v1597616851/default_avatar_for_parent_fh2ran.jpg"
     }
 }, { timestamps: { createdAt: true, updatedAt: false } });
 
