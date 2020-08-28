@@ -29,7 +29,8 @@
     "mongoose": "^5.9.13",
     "node-cron": "^2.0.3",
     "orange-connect": "^1.0.1",
-    "request": "^2.88.2"
+    "request": "^2.88.2",
+    "socket.io": "^2.3.0"
   },
   "devDependencies": {
     "concurrently": "^5.2.0",

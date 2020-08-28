@@ -7,6 +7,14 @@ const cors = require("cors");
 app.use(cors());
 require("./cron/index");
 
+
+// setup socket.io in the back-end (only 2 lines)
+const server = require("http").createServer(app);
+const io = require("socket.io")(server);
+
+
+
+let connect;
 // new ChilhoodInstitution({
 //   location: "fqsfqsfqs"
 // }).save()
@@ -34,16 +42,25 @@ app.get("/", (req, res) => {
 
 
 
+io.on("connection", (socket) => {
+    console.log("We have a new connection!!!");
+
+    socket.on("disconnect", () => {
+        console.log("User had left!!!");
+    });
+
+});
+
 
 
 
 // Connect Server to database + Make Server listenning 
 (async () => {
     try {
-        await mongoose.connect(process.env.DB_CONNECTION, { useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false });
+        connect = await mongoose.connect(process.env.DB_CONNECTION, { useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false });
         console.log("mongoDB database connected to the Server...");
         const PORT = process.env.PORT || 8888;
-        app.listen(PORT, err => {
+        server.listen(PORT, err => {
             if (err) {
                 console.log("Listening error: ", err);
             } else {
@@ -56,3 +73,10 @@ app.get("/", (req, res) => {
         process.exit(1);
     }
 })();
+
+
+
+
+// setTimeout(() => {
+//     console.log({ connect });
+// }, 10000);
