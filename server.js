@@ -45,6 +45,12 @@ app.get("/", (req, res) => {
 io.on("connection", (socket) => {
     console.log("We have a new connection!!!");
 
+    socket.on("join", ({ room }, callback) => {
+        socket.join(room);
+        console.log(`the manager join the room ${room}`);
+        callback();
+    });
+
     socket.on("disconnect", () => {
         console.log("User had left!!!");
     });
