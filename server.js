@@ -40,15 +40,50 @@ app.get("/", (req, res) => {
     res.send("API Running");
 });
 
-
+const Chat = require("./models/Chat");
 
 io.on("connection", (socket) => {
     console.log("We have a new connection!!!");
+    //console.log({ connect });
+
 
     socket.on("join", ({ room }, callback) => {
         socket.join(room);
         console.log(`the manager join the room ${room}`);
         callback();
+    });
+
+
+
+
+    socket.on("sendMessage", async ({ content, sender, childhoodInstitution, parent, type, time }, callback) => {
+        try {
+            // first, we are going to put our data into the db
+            // await mongoose.connect(process.env.DB_CONNECTION, { useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false });
+
+
+            let chat = new Chat({
+                content,
+                sender,
+                childhoodInstitution, // childhoodInstitutionId
+                parent, // parentId
+                type,
+                time // nowTime
+            });
+
+            chat = await Chat.populate(chat, [{ path: "childhoodInstitution" }, { path: "parent" }]);
+            // Ex: comment = await Comment.populate(comment, [{ path: "childhoodInstitution" }, { path: "user", select: "-password" }]);
+            await chat.save();
+            //return io.emit("message", chat);
+            // console.log({ chat });
+            return io.to(parent).emit("message", chat); // Important: here io.to(parent) = io.to(room) 
+
+
+        } catch (error) {
+            console.log("errorSocketIo-sendMessageEvent:::", error);
+            //res.status(500).json({ success: false, err });
+        }
+
     });
 
     socket.on("disconnect", () => {

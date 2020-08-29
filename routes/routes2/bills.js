@@ -205,7 +205,7 @@ router.get("/monthlybills_withstatus/:childhoodInstitutionId/:monthNum/:paymentS
         const userToAccess = await TeamMember.findById(req.user.id);
         if (!userToAccess) return res.status(403).json({ errorMsg: "Can not access this data" });
         // access only for TeamMembers (manager and foundationEmitter)
-        if ((userToAccess.status.find(obj => obj.value === "manager") || userToAccess.status.includes("foundationEmitter")) && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
+        if ((userToAccess.status.find(obj => obj.value === "manager") || userToAccess.status.find(obj => obj.value === "founder")) && userToAccess.childhoodInstitution == req.params.childhoodInstitutionId) {
             const childhoodInstitution = req.user.childhoodInstitution;
             let conditions;
             if (req.params.paymentStatus === "all") conditions = { childhoodInstitution, monthOfCreation: Number(req.params.monthNum), isVisible: true };
