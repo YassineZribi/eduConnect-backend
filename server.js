@@ -33,6 +33,7 @@ app.use("/bills", require("./routes/routes2/bills"));
 app.use("/auth", require("./routes/routes2/auth"));
 app.use("/posts", require("./routes/posts"));
 app.use("/calendar_events", require("./routes/routes2/calendarEvents"));
+app.use("/chats", require("./routes/routes2/chats"));
 
 
 app.get("/", (req, res) => {
